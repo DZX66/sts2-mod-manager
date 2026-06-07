@@ -1,5 +1,6 @@
 import React from 'react';
 import { ToggleLeft, ToggleRight, AlertTriangle, GripVertical, Blocks, Gamepad2, Palette, Shield } from 'lucide-react';
+import { getUnsatisfiedDeps, checkMinGameVersion } from '../utils/deps';
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -8,20 +9,20 @@ function formatSize(bytes) {
 }
 
 function getMissingDeps(mod, allMods) {
-  if (!mod.dependencies || mod.dependencies.length === 0) return [];
-  const enabledIds = allMods.filter(m => m.enabled).map(m => m.id);
-  return mod.dependencies.filter(dep => !enabledIds.includes(dep));
+  return getUnsatisfiedDeps(mod, allMods).map(r => r.id);
 }
 
 function getModCategory(mod, allMods) {
-  const isDepForOthers = allMods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.includes(mod.id));
+  const isDepForOthers = allMods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.some(d => d.id === mod.id));
   if (isDepForOthers) return { label: '框架', color: 'bg-indigo-50 text-indigo-600' };
-  if (mod.affects_gameplay || mod.has_dll) return { label: '玩法', color: 'bg-amber-50 text-amber-700' };
+  if (mod.affects_gameplay) return { label: '玩法', color: 'bg-amber-50 text-amber-700' };
   return { label: '资源', color: 'bg-teal-50 text-teal-600' };
 }
 
-export default function ModListItem({ mod, allMods, translations, selected, multiSelected, onToggle, onClick, onCheckToggle, draggable }) {
+export default function ModListItem({ mod, allMods, translations, selected, multiSelected, onToggle, onClick, onCheckToggle, draggable, gameVersion }) {
   const missingDeps = getMissingDeps(mod, allMods);
+  const versionOk = checkMinGameVersion(mod, gameVersion);
+  const versionIncompatible = versionOk === false;
   const category = getModCategory(mod, allMods);
   const t = translations && translations[mod.id];
 
@@ -56,12 +57,20 @@ export default function ModListItem({ mod, allMods, translations, selected, mult
               <AlertTriangle size={11} /> 缺依赖
             </span>
           )}
+          {versionIncompatible && mod.enabled && (
+            <span className="flex items-center gap-0.5 text-[10px] text-amber-500 font-medium flex-shrink-0">
+              <AlertTriangle size={11} /> 版本不兼容
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[11px] text-gray-400 truncate">{mod.author || '未知'}</span>
           <span className="text-[11px] text-gray-300">v{mod.version}</span>
           {missingDeps.length > 0 && mod.enabled && (
             <span className="text-[10px] text-red-400 truncate">缺少: {missingDeps.join(', ')}</span>
+          )}
+          {versionIncompatible && mod.enabled && (
+            <span className="text-[10px] text-amber-500 truncate">需游戏 v{mod.min_game_version}+（当前 v{gameVersion}）</span>
           )}
         </div>
       </div>
@@ -78,6 +87,11 @@ export default function ModListItem({ mod, allMods, translations, selected, mult
         {mod.dependencies && mod.dependencies.length > 0 && (
           <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${missingDeps.length > 0 ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'}`}>
             {mod.dependencies.length}依赖
+          </span>
+        )}
+        {mod.min_game_version && (
+          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${versionIncompatible ? 'bg-amber-50 text-amber-500' : 'bg-gray-50 text-gray-400'}`}>
+            ≥v{mod.min_game_version}
           </span>
         )}
         <span className="text-[10px] text-gray-300 w-12 text-right">{formatSize(mod.size)}</span>

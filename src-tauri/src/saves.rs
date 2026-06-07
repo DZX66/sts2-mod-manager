@@ -109,11 +109,10 @@ fn get_save_backup_dir() -> PathBuf {
 
 const CHARACTER_NAMES: &[(&str, &str)] = &[
     ("CHARACTER.IRONCLAD", "铁甲战士"),
-    ("CHARACTER.SILENT", "沉默猎手"),
-    ("CHARACTER.REGENT", "摄政王"),
-    ("CHARACTER.NECROBINDER", "缚灵师"),
-    ("CHARACTER.DEFECT", "缺陷体"),
-    ("CHARACTER.WATCHER", "观察者"),
+    ("CHARACTER.SILENT", "静默猎手"),
+    ("CHARACTER.REGENT", "储君"),
+    ("CHARACTER.NECROBINDER", "亡灵契约师"),
+    ("CHARACTER.DEFECT", "故障机器人"),
 ];
 
 fn char_name(id: &str) -> String {
@@ -255,31 +254,12 @@ fn scan_save_slot(user_dir: &Path, slot: &str, modded: bool) -> Option<SaveSlot>
 }
 
 fn chrono_from_timestamp(secs: i64) -> String {
-    use std::time::{Duration, UNIX_EPOCH};
-    let d = UNIX_EPOCH + Duration::from_secs(secs as u64);
-    let datetime: std::time::SystemTime = d;
-    // Format as ISO-like string
-    format!("{:?}", datetime)
+    let dt = chrono::DateTime::from_timestamp(secs, 0).unwrap_or_default();
+    dt.format("%Y-%m-%dT%H:%M:%S").to_string()
 }
 
 fn timestamp_string() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    let secs = now.as_secs();
-    let hours = (secs / 3600) % 24;
-    let mins = (secs / 60) % 60;
-    let s = secs % 60;
-    format!(
-        "{}-{:02}-{:02}T{:02}-{:02}-{:02}",
-        1970 + secs / 31557600, // approximate year
-        ((secs % 31557600) / 2629800) + 1, // approximate month
-        ((secs % 2629800) / 86400) + 1, // approximate day
-        hours,
-        mins,
-        s
-    )
+    chrono::Local::now().format("%Y-%m-%dT%H-%M-%S").to_string()
 }
 
 #[tauri::command]

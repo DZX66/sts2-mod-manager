@@ -1,5 +1,6 @@
 import React from 'react';
 import { ToggleLeft, ToggleRight, AlertTriangle, Blocks, Gamepad2, Palette, Shield } from 'lucide-react';
+import { getUnsatisfiedDeps, checkMinGameVersion } from '../utils/deps';
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -8,25 +9,24 @@ function formatSize(bytes) {
 }
 
 function getMissingDeps(mod, allMods) {
-  if (!mod.dependencies || mod.dependencies.length === 0) return [];
-  const allIds = allMods.map(m => m.id);
-  const enabledIds = allMods.filter(m => m.enabled).map(m => m.id);
-  return mod.dependencies.map(dep => ({
-    id: dep,
-    installed: allIds.includes(dep),
-    enabled: enabledIds.includes(dep),
-  })).filter(d => !d.enabled);
+  return getUnsatisfiedDeps(mod, allMods).map(r => ({
+    id: r.id,
+    reason: r.reason,
+    dep: r.dep,
+  }));
 }
 
 function getModCategory(mod, allMods) {
-  const isDepForOthers = allMods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.includes(mod.id));
+  const isDepForOthers = allMods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.some(d => d.id === mod.id));
   if (isDepForOthers) return { label: '框架前置', color: 'bg-indigo-50 text-indigo-600', icon: Shield };
-  if (mod.affects_gameplay || mod.has_dll) return { label: '玩法改动', color: 'bg-amber-50 text-amber-700', icon: Gamepad2 };
+  if (mod.affects_gameplay) return { label: '玩法改动', color: 'bg-amber-50 text-amber-700', icon: Gamepad2 };
   return { label: '资源类', color: 'bg-teal-50 text-teal-600', icon: Palette };
 }
 
-export default function ModCard({ mod, allMods, translations, onToggle, onClick, selected }) {
+export default function ModCard({ mod, allMods, translations, onToggle, onClick, selected, gameVersion }) {
   const missingDeps = getMissingDeps(mod, allMods);
+  const versionOk = checkMinGameVersion(mod, gameVersion);
+  const versionIncompatible = versionOk === false;
   const category = getModCategory(mod, allMods);
   const CategoryIcon = category.icon;
   const t = translations && translations[mod.id];
@@ -35,7 +35,7 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
     <div
       onClick={onClick}
       className={`relative bg-white rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md ${
-        selected ? 'border-gray-900 shadow-md' : missingDeps.length > 0 ? 'border-red-200' : 'border-gray-100 hover:border-gray-200'
+        selected ? 'border-gray-900 shadow-md' : missingDeps.length > 0 ? 'border-red-200' : versionIncompatible ? 'border-amber-200' : 'border-gray-100 hover:border-gray-200'
       } ${!mod.enabled ? 'opacity-60' : ''}`}
     >
       {/* Missing deps banner */}
@@ -44,6 +44,16 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
           <AlertTriangle size={12} className="text-red-500 flex-shrink-0" />
           <span className="text-[11px] text-red-600 font-medium truncate">
             缺失依赖，无法正常工作：{missingDeps.map(d => d.id).join(', ')}
+          </span>
+        </div>
+      )}
+
+      {/* Version incompatibility banner */}
+      {versionIncompatible && !missingDeps.length && (
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 -mx-4 -mt-4 mb-3 bg-amber-50 rounded-t-xl border-b border-amber-100">
+          <AlertTriangle size={12} className="text-amber-500 flex-shrink-0" />
+          <span className="text-[11px] text-amber-700 font-medium truncate">
+            需要游戏 v{mod.min_game_version} 以上版本（当前 {gameVersion}）
           </span>
         </div>
       )}

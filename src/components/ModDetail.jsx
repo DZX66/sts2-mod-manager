@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ToggleLeft, ToggleRight, Trash2, AlertTriangle, FileText, Box, Code, Languages, ExternalLink, Shield, Gamepad2, Palette } from 'lucide-react';
+import { getUnsatisfiedDeps, checkDepSatisfied, checkMinGameVersion } from '../utils/deps';
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -13,16 +14,17 @@ function isChinese(text) {
 }
 
 function getModCategory(mod, allMods) {
-  const isDepForOthers = allMods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.includes(mod.id));
+  const isDepForOthers = allMods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.some(d => d.id === mod.id));
   if (isDepForOthers) return { label: '框架前置', color: 'bg-indigo-50 text-indigo-600', icon: Shield };
-  if (mod.affects_gameplay || mod.has_dll) return { label: '玩法改动', color: 'bg-amber-50 text-amber-700', icon: Gamepad2 };
+  if (mod.affects_gameplay) return { label: '玩法改动', color: 'bg-amber-50 text-amber-700', icon: Gamepad2 };
   return { label: '资源类', color: 'bg-teal-50 text-teal-600', icon: Palette };
 }
 
-export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall, onSelectMod, onTranslationSaved }) {
-  const enabledIds = allMods.filter(m => m.enabled).map(m => m.id);
-  const missingDeps = (mod.dependencies || []).filter(d => !enabledIds.includes(d));
-  const dependents = allMods.filter(m => m.dependencies && m.dependencies.includes(mod.id) && m.enabled);
+export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall, onSelectMod, onTranslationSaved, gameVersion }) {
+  const missingDeps = getUnsatisfiedDeps(mod, allMods);
+  const versionOk = checkMinGameVersion(mod, gameVersion);
+  const versionIncompatible = versionOk === false;
+  const dependents = allMods.filter(m => m.dependencies && m.dependencies.some(d => d.id === mod.id) && m.enabled);
   const category = getModCategory(mod, allMods);
   const CategoryIcon = category.icon;
 
@@ -128,6 +130,7 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
             ['版本', mod.version || '未知'],
             ['大小', formatSize(mod.size)],
             ['类型', mod.isFolder ? '文件夹 MOD' : '独立文件 MOD'],
+            ...(mod.min_game_version ? [['所需游戏版本', `≥ v${mod.min_game_version}`]] : []),
           ].map(([label, value]) => (
             <div key={label} className="flex items-center justify-between">
               <span className="text-xs text-gray-400">{label}</span>
@@ -135,6 +138,16 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
             </div>
           ))}
         </div>
+
+        {/* Version incompatibility warning */}
+        {versionIncompatible && mod.enabled && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-lg">
+            <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
+            <span className="text-xs text-amber-700">
+              此 MOD 需要游戏 v{mod.min_game_version} 以上版本，当前游戏版本为 {gameVersion}，可能无法正常工作
+            </span>
+          </div>
+        )}
 
         {/* Description */}
         <div>
@@ -166,19 +179,22 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
           <div>
             <p className="text-xs text-gray-400 mb-2">依赖项</p>
             {mod.dependencies.map(dep => {
-              const isMissing = missingDeps.includes(dep);
-              const depMod = allMods.find(m => m.id === dep);
+              const result = checkDepSatisfied(dep, allMods);
+              const isMissing = !result.satisfied;
+              const depMod = allMods.find(m => m.id === dep.id);
               const canJump = depMod && onSelectMod;
               return (
-                <div key={dep}
+                <div key={dep.id}
                   onClick={canJump ? () => onSelectMod(depMod) : undefined}
                   className={`flex items-center gap-2 py-1.5 px-3 rounded-lg text-sm mb-1 ${
                     isMissing ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'
                   } ${canJump ? 'cursor-pointer hover:ring-1 hover:ring-current/20 transition-all' : ''}`}>
                   {isMissing ? <AlertTriangle size={14} /> : <Box size={14} />}
-                  <span className="flex-1 truncate">{depMod ? depMod.name : dep}</span>
+                  <span className="flex-1 truncate">{depMod ? depMod.name : dep.id}</span>
+                  {dep.min_version && <span className="text-[10px] opacity-60">≥ {dep.min_version}</span>}
                   {isMissing && !depMod && <span className="text-[10px] ml-auto">未安装</span>}
-                  {isMissing && depMod && <span className="text-[10px] ml-auto">未启用</span>}
+                  {isMissing && depMod && result.reason === 'disabled' && <span className="text-[10px] ml-auto">未启用</span>}
+                  {isMissing && depMod && result.reason === 'version_mismatch' && <span className="text-[10px] ml-auto text-amber-600">版本过低 ({depMod.version} {'<'}{dep.min_version})</span>}
                   {canJump && <ExternalLink size={12} className="flex-shrink-0 opacity-50" />}
                 </div>
               );

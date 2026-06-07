@@ -5,6 +5,13 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use tauri_plugin_dialog::DialogExt;
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DependencyInfo {
+    pub id: String,
+    #[serde(rename = "min_version")]
+    pub min_version: Option<String>,
+}
+
 const DISABLED_DIR: &str = "mods_disabled";
 const LEGACY_DISABLED_DIR: &str = "_disabled";
 
@@ -15,8 +22,10 @@ pub struct ModInfo {
     pub author: Option<String>,
     pub version: Option<String>,
     pub description: Option<String>,
-    pub dependencies: Option<Vec<String>>,
+    pub dependencies: Option<Vec<DependencyInfo>>,
     pub affects_gameplay: Option<bool>,
+    #[serde(rename = "min_game_version")]
+    pub min_game_version: Option<String>,
     pub has_dll: Option<bool>,
     pub has_pck: Option<bool>,
     pub enabled: bool,
@@ -143,14 +152,36 @@ fn try_parse_mod(full_path: &Path, item_name: &str, enabled: bool) -> Option<Mod
                             .map(String::from),
                         dependencies: data.get("dependencies").and_then(|v| {
                             v.as_array().map(|arr| {
-                                arr.iter()
-                                    .filter_map(|x| x.as_str().map(String::from))
-                                    .collect()
+                                arr.iter().filter_map(|item| {
+                                    if let Some(s) = item.as_str() {
+                                        // Old format: plain string dependency id
+                                        Some(DependencyInfo {
+                                            id: s.to_string(),
+                                            min_version: None,
+                                        })
+                                    } else if let Some(obj) = item.as_object() {
+                                        // New format: object with id and optional min_version
+                                        obj.get("id")
+                                            .and_then(|v| v.as_str())
+                                            .map(|id| DependencyInfo {
+                                                id: id.to_string(),
+                                                min_version: obj.get("min_version")
+                                                    .and_then(|v| v.as_str())
+                                                    .map(String::from),
+                                            })
+                                    } else {
+                                        None
+                                    }
+                                }).collect()
                             })
                         }),
                         affects_gameplay: data
                             .get("affects_gameplay")
                             .and_then(|v| v.as_bool()),
+                        min_game_version: data
+                            .get("min_game_version")
+                            .and_then(|v| v.as_str())
+                            .map(String::from),
                         has_dll: Some(has_dll),
                         has_pck: Some(has_pck),
                         enabled,
@@ -204,12 +235,34 @@ fn try_parse_mod(full_path: &Path, item_name: &str, enabled: bool) -> Option<Mod
                         .map(String::from),
                     dependencies: data.get("dependencies").and_then(|v| {
                         v.as_array().map(|arr| {
-                            arr.iter()
-                                .filter_map(|x| x.as_str().map(String::from))
-                                .collect()
+                            arr.iter().filter_map(|item| {
+                                if let Some(s) = item.as_str() {
+                                    // Old format: plain string dependency id
+                                    Some(DependencyInfo {
+                                        id: s.to_string(),
+                                        min_version: None,
+                                    })
+                                } else if let Some(obj) = item.as_object() {
+                                    // New format: object with id and optional min_version
+                                    obj.get("id")
+                                        .and_then(|v| v.as_str())
+                                        .map(|id| DependencyInfo {
+                                            id: id.to_string(),
+                                            min_version: obj.get("min_version")
+                                                .and_then(|v| v.as_str())
+                                                .map(String::from),
+                                        })
+                                } else {
+                                    None
+                                }
+                            }).collect()
                         })
                     }),
                     affects_gameplay: data.get("affects_gameplay").and_then(|v| v.as_bool()),
+                    min_game_version: data
+                        .get("min_game_version")
+                        .and_then(|v| v.as_str())
+                        .map(String::from),
                     has_dll: Some(has_dll),
                     has_pck: Some(has_pck),
                     enabled,

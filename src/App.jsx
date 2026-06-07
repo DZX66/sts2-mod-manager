@@ -11,6 +11,7 @@ import {
   ToggleLeft, ToggleRight, Trash2, Layers, Save, ChevronDown, Package, LayoutGrid, List,
   ArrowUpDown, CheckCircle2, Circle, Rocket,
 } from 'lucide-react';
+import { getUnsatisfiedDeps } from './utils/deps';
 
 export default function App() {
   const [page, setPage] = useState('mods');
@@ -110,7 +111,7 @@ export default function App() {
   };
 
   const handleUninstall = (mod) => {
-    const dependents = mods.filter(m => m.dependencies && m.dependencies.includes(mod.id) && m.enabled);
+    const dependents = mods.filter(m => m.dependencies && m.dependencies.some(d => d.id === mod.id) && m.enabled);
     setConfirmDialog({
       title: `卸载 ${mod.name}`,
       message: dependents.length > 0
@@ -256,11 +257,10 @@ export default function App() {
 
   const hasMissingDeps = (mod) => {
     if (!mod.dependencies || mod.dependencies.length === 0) return false;
-    const enabledIds = mods.filter(m => m.enabled).map(m => m.id);
-    return mod.dependencies.some(dep => !enabledIds.includes(dep));
+    return getUnsatisfiedDeps(mod, mods).length > 0;
   };
 
-  const isFramework = (mod) => mods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.includes(mod.id));
+  const isFramework = (mod) => mods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.some(d => d.id === mod.id));
 
   const filteredMods = mods.filter(m => {
     if (filter === 'enabled' && !m.enabled) return false;
@@ -584,6 +584,7 @@ export default function App() {
                             mod={mod}
                             allMods={mods}
                             translations={translations}
+                            gameVersion={gameVersion}
                             onToggle={() => handleToggle(mod)}
                             onClick={() => setSelectedMod(mod)}
                             selected={selectedMod?.instanceKey === mod.instanceKey}
@@ -595,6 +596,7 @@ export default function App() {
                   {/* Detail panel (slide-in) */}
                   {selectedMod && (
                     <ModDetail
+                      gameVersion={gameVersion}
                       mod={selectedMod}
                       allMods={mods}
                       onClose={() => setSelectedMod(null)}
@@ -628,6 +630,7 @@ export default function App() {
                           mod={mod}
                           allMods={mods}
                           translations={translations}
+                          gameVersion={gameVersion}
                           selected={selectedMod?.instanceKey === mod.instanceKey}
                           multiSelected={selectedIds.has(mod.instanceKey)}
                           onToggle={() => handleToggle(mod)}
@@ -648,6 +651,7 @@ export default function App() {
                   {/* Right: Detail panel (always visible) */}
                   {selectedMod ? (
                     <ModDetail
+                      gameVersion={gameVersion}
                       mod={selectedMod}
                       allMods={mods}
                       onClose={() => setSelectedMod(null)}
