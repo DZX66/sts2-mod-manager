@@ -38,7 +38,6 @@ export default function App() {
 
   useEffect(() => {
     window.api.getGameState().then(setGameState);
-    window.api.getGameVersion().then(v => { if (v.version) setGameVersion(v.version); });
     window.api.onGameStateChanged((state) => setGameState(state));
     window.api.onGameExited(async (info) => {
       const v = await window.api.getGameVersion();
@@ -86,6 +85,9 @@ export default function App() {
         const list = await window.api.scanMods();
         syncMods(list);
       }
+      // 在 init() 之后获取游戏版本
+      const v = await window.api.getGameVersion();
+      if (v.version) setGameVersion(v.version);
     })();
   }, [syncMods]);
 

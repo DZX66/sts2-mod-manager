@@ -1,4 +1,5 @@
 use crate::AppState;
+use chrono::NaiveDateTime;
 use serde::Serialize;
 use std::fs;
 use std::path::Path;
@@ -159,8 +160,45 @@ fn is_game_running() -> bool {
     }
 }
 
+/// Parse timestamp from rotated log filename like `godot2026-06-07T10.39.44.log`.
+/// Returns Unix timestamp in seconds, or None if parsing fails.
+fn parse_log_timestamp(name: &str) -> Option<i64> {
+    // Format: godot<datetime>.log
+    // Extract the datetime string between "godot" and ".log"
+    if !name.starts_with("godot") || !name.ends_with(".log") {
+        return None;
+    }
+    let ts_str = &name[5..name.len() - 4];
+    // Replace dots (used instead of colons in filename) with colons
+    let ts_str = ts_str.replace('.', ":");
+    NaiveDateTime::parse_from_str(&ts_str, "%Y-%m-%dT%H:%M:%S")
+        .ok()
+        .map(|dt| dt.and_utc().timestamp())
+}
+
 #[tauri::command]
-pub fn game_get_version() -> GameVersion {
+pub fn game_get_version(state: tauri::State<'_, AppState>) -> GameVersion {
+    // Priority 1: Check release_info.json in game installation directory
+    {
+        let gp = state.game_path.lock().unwrap();
+        if let Some(ref p) = *gp {
+            let release_info_path = Path::new(p).join("release_info.json");
+            if release_info_path.exists() {
+                if let Ok(content) = fs::read_to_string(&release_info_path) {
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                        if let Some(version) = json.get("version").and_then(|v| v.as_str()) {
+                            return GameVersion {
+                                version: Some(version.to_string()),
+                                engine: None,
+                            };
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Priority 2: Fall back to log parsing
     let appdata = match get_appdata() {
         Some(d) => d,
         None => return GameVersion { version: None, engine: None },
@@ -170,28 +208,24 @@ pub fn game_get_version() -> GameVersion {
         return GameVersion { version: None, engine: None };
     }
 
-    // Find rotated logs
-    let mut candidates: Vec<(String, u64)> = Vec::new();
+    // Find rotated logs (godot2*.log), parse timestamps from filenames
+    let mut candidates: Vec<(String, i64)> = Vec::new();
     if let Ok(entries) = fs::read_dir(&logs_dir) {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
             if name.starts_with("godot2") && name.ends_with(".log") {
-                if let Ok(meta) = entry.metadata() {
-                    let mtime = meta
-                        .modified()
-                        .ok()
-                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                        .map(|d| d.as_millis() as u64)
-                        .unwrap_or(0);
-                    candidates.push((name, mtime));
+                if let Some(ts) = parse_log_timestamp(&name) {
+                    candidates.push((name, ts));
                 }
             }
         }
     }
+    // Sort by timestamp descending (newest first)
     candidates.sort_by(|a, b| b.1.cmp(&a.1));
 
     let mut file_names: Vec<String> = candidates.into_iter().map(|(n, _)| n).collect();
-    file_names.push("godot.log".to_string());
+    // Prefer godot.log over rotated logs
+    file_names.insert(0, "godot.log".to_string());
 
     for fname in &file_names {
         let fp = logs_dir.join(fname);
@@ -431,8 +465,8 @@ pub fn game_analyze_crash() -> CrashReport {
     }
     involved.sort_by(|a, b| b.error_count.cmp(&a.error_count));
 
-    let error_count = content.lines().filter(|l| l.contains("[ERROR]")).count();
-    let warn_count = content.lines().filter(|l| l.contains("[WARN]")).count();
+    let error_count = content.lines().filter(|l| l.contains("[ERROR]") || l.trim_start().starts_with("ERROR")).count();
+    let warn_count = content.lines().filter(|l| l.contains("[WARN]") || l.trim_start().starts_with("WARNING")).count();
 
     CrashReport {
         issues,

@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, RefreshCw, ChevronDown } from 'lucide-react';
 
+function isErrorLine(line) {
+  return line.includes('[ERROR]') || line.trimStart().startsWith('ERROR');
+}
+
+function isWarnLine(line) {
+  return line.includes('[WARN]') || line.trimStart().startsWith('WARNING');
+}
+
 function colorLine(line) {
-  if (line.includes('[ERROR]')) return 'text-red-600 bg-red-50';
-  if (line.includes('[WARN]')) return 'text-amber-600 bg-amber-50';
+  if (isErrorLine(line)) return 'text-red-600 bg-red-50';
+  if (isWarnLine(line)) return 'text-amber-600 bg-amber-50';
   if (line.includes('[INFO]')) return 'text-gray-600';
   return 'text-gray-400';
 }
@@ -40,14 +48,14 @@ export default function LogViewer() {
   };
 
   const lines = content.split('\n').filter(line => {
-    if (filterLevel === 'error' && !line.includes('[ERROR]')) return false;
-    if (filterLevel === 'warn' && !line.includes('[WARN]') && !line.includes('[ERROR]')) return false;
+    if (filterLevel === 'error' && !isErrorLine(line)) return false;
+    if (filterLevel === 'warn' && !isWarnLine(line) && !isErrorLine(line)) return false;
     if (search && !line.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  const errorCount = content.split('\n').filter(l => l.includes('[ERROR]')).length;
-  const warnCount = content.split('\n').filter(l => l.includes('[WARN]')).length;
+  const errorCount = content.split('\n').filter(l => isErrorLine(l)).length;
+  const warnCount = content.split('\n').filter(l => isWarnLine(l)).length;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">

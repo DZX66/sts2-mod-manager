@@ -89,11 +89,6 @@ export default function ModListItem({ mod, allMods, translations, selected, mult
             {mod.dependencies.length}依赖
           </span>
         )}
-        {mod.min_game_version && (
-          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${versionIncompatible ? 'bg-amber-50 text-amber-500' : 'bg-gray-50 text-gray-400'}`}>
-            ≥v{mod.min_game_version}
-          </span>
-        )}
         <span className="text-[10px] text-gray-300 w-12 text-right">{formatSize(mod.size)}</span>
       </div>
 
