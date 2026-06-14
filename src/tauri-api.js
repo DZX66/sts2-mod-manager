@@ -94,6 +94,10 @@ window.api = {
   loadTranslations: () => invoke('translations_load'),
   saveTranslations: (data) => invoke('translations_save', { data }),
 
+  // Mod notes
+  loadModNotes: () => invoke('mods_notes_load'),
+  saveModNotes: (data) => invoke('mods_notes_save', { data }),
+
   // Saves
   scanSaves: () => invoke('saves_scan'),
   exportSave: (opts) => invoke('saves_export', { opts }),

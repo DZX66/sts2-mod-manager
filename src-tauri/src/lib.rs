@@ -2,6 +2,7 @@ mod config;
 mod game;
 mod logs;
 mod mods;
+mod notes;
 mod profiles;
 mod saves;
 mod translate;
@@ -62,6 +63,9 @@ pub fn run() {
             // Translations persistence
             translations::translations_load,
             translations::translations_save,
+            // Mod notes
+            notes::mods_notes_load,
+            notes::mods_notes_save,
             // Saves
             saves::saves_scan,
             saves::saves_export,

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, ToggleLeft, ToggleRight, Trash2, AlertTriangle, FileText, Box, Code, Languages, ExternalLink, Shield, Gamepad2, Palette } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, ToggleLeft, ToggleRight, Trash2, AlertTriangle, FileText, Box, Code, Languages, ExternalLink, Shield, Gamepad2, Palette, StickyNote } from 'lucide-react';
 import { getUnsatisfiedDeps, checkDepSatisfied, checkMinGameVersion } from '../utils/deps';
 
 function formatSize(bytes) {
@@ -174,6 +174,9 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
           )}
         </div>
 
+        {/* Mod Notes */}
+        <ModNotesEditor modId={mod.id} />
+
         {/* Dependencies */}
         {mod.dependencies && mod.dependencies.length > 0 && (
           <div>
@@ -243,6 +246,94 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
           <Trash2 size={14} /> 卸载 MOD
         </button>
       </div>
+    </div>
+  );
+}
+
+function ModNotesEditor({ modId }) {
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [hasNote, setHasNote] = useState(false);
+  const saveTimerRef = useRef(null);
+
+  // Load notes when mod changes
+  useEffect(() => {
+    if (window.api.loadModNotes) {
+      window.api.loadModNotes().then(allNotes => {
+        const savedNote = allNotes[modId];
+        if (savedNote) {
+          setNotes(savedNote);
+          setHasNote(true);
+        } else {
+          setNotes('');
+          setHasNote(false);
+        }
+      }).catch(() => {
+        setNotes('');
+        setHasNote(false);
+      });
+    }
+  }, [modId]);
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setNotes(value);
+    // Auto-save with debounce
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveNotes(value);
+    }, 600);
+  };
+
+  const saveNotes = async (text) => {
+    if (!window.api.saveModNotes) return;
+    setSaving(true);
+    try {
+      const allNotes = await window.api.loadModNotes();
+      if (text.trim()) {
+        allNotes[modId] = text;
+        setHasNote(true);
+      } else {
+        delete allNotes[modId];
+        setHasNote(false);
+      }
+      await window.api.saveModNotes(allNotes);
+    } catch (e) {
+      console.error('Failed to save notes:', e);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-1">
+          <StickyNote size={13} className="text-gray-400" />
+          <p className="text-xs text-gray-400">备注</p>
+          {saving && <span className="text-[10px] text-gray-300">保存中...</span>}
+        </div>
+        {notes && (
+          <button onClick={() => {
+              if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+              setNotes('');
+              saveNotes('');
+            }}
+            className="text-[11px] text-gray-400 hover:text-red-500 transition-colors">
+            清除
+          </button>
+        )}
+      </div>
+      <textarea
+        value={notes}
+        onChange={handleChange}
+        placeholder="添加备注..."
+        rows={3}
+        className={`w-full text-xs border rounded-lg p-2 resize-none transition-colors focus:outline-none focus:ring-1 ${
+          hasNote
+            ? 'border-amber-200 bg-amber-50/50 text-gray-700 focus:ring-amber-300'
+            : 'border-gray-200 bg-gray-50 text-gray-500 focus:ring-gray-300'
+        }`}
+      />
     </div>
   );
 }

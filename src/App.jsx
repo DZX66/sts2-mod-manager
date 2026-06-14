@@ -33,6 +33,7 @@ export default function App() {
   const [profiles, setProfiles] = useState({});
   const [newProfileName, setNewProfileName] = useState('');
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [missingModsDialog, setMissingModsDialog] = useState(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [translations, setTranslations] = useState({});
 
@@ -196,7 +197,12 @@ export default function App() {
     const name = newProfileName.trim();
     if (!name) return;
     const snapshot = {};
-    mods.forEach(m => { snapshot[m.id] = m.enabled; });
+    mods.forEach(m => {
+      // Only store enabled mods; disabled mods are implied as "off"
+      if (m.enabled) {
+        snapshot[m.id] = { version: m.version || null, enabled: true };
+      }
+    });
     const updated = { ...profiles, [name]: { snapshot, savedAt: new Date().toISOString() } };
     await window.api.saveProfiles(updated);
     setProfiles(updated);
@@ -204,13 +210,128 @@ export default function App() {
     showToast(`配置 "${name}" 已保存`);
   };
 
+  const getProfileEntry = (entry) => {
+    // Support both old format (boolean) and new format ({ version, enabled })
+    if (typeof entry === 'boolean') return { version: null, enabled: entry };
+    return { version: entry?.version || null, enabled: entry?.enabled ?? false };
+  };
+
+  // Apply a profile: enable matching-version mods in snapshot, disable everything else
+  const applyProfileState = async (profile) => {
+    for (const mod of mods) {
+      const entry = profile.snapshot[mod.id];
+      if (entry !== undefined) {
+        const info = getProfileEntry(entry);
+        if (info.version) {
+          // Version specified: only enable the instance matching both id and version
+          const isTargetVersion = mod.version === info.version;
+          if (isTargetVersion && !mod.enabled) {
+            await window.api.toggleMod(mod);
+          } else if (!isTargetVersion && mod.enabled) {
+            // Wrong version is currently enabled, disable it
+            await window.api.toggleMod(mod);
+          }
+        } else {
+          // No version specified: match by id (legacy behavior)
+          if (info.enabled !== mod.enabled) {
+            await window.api.toggleMod(mod);
+          }
+        }
+      } else {
+        // Mod is NOT in snapshot (was disabled when saved): disable it
+        if (mod.enabled) {
+          await window.api.toggleMod(mod);
+        }
+      }
+    }
+  };
+
   const handleApplyProfile = (name) => {
     const profile = profiles[name];
     if (!profile) return;
-    const changes = mods.filter(m => {
-      const target = profile.snapshot[m.id];
-      return target !== undefined && target !== m.enabled;
+
+    // Detect missing mods: mods id in snapshot that has NO instance at all in current mods list
+    const missingModIds = Object.keys(profile.snapshot).filter(id => {
+      return !mods.some(m => m.id === id);
     });
+
+    // Detect version mismatches: mods with version in snapshot that have NO instance matching both id AND version
+    // (if an exact id+version match exists, it's not a mismatch)
+    const versionMismatches = Object.keys(profile.snapshot).filter(id => {
+      const entry = profile.snapshot[id];
+      const info = getProfileEntry(entry);
+      if (!info.version) return false; // no version recorded, skip
+      // Skip if already marked as missing
+      if (missingModIds.includes(id)) return false;
+      // Check if ANY mod instance matches both id AND the specified version
+      return !mods.some(m => m.id === id && m.version === info.version);
+    }).map(id => {
+      const entry = profile.snapshot[id];
+      const info = getProfileEntry(entry);
+      const availableVersions = [...new Set(
+        mods.filter(m => m.id === id).map(m => m.version || '未知')
+      )];
+      return { id, savedVersion: info.version, availableVersions };
+    });
+
+    // Calculate total changes for confirmation message
+    const changes = mods.filter(m => {
+      const entry = profile.snapshot[m.id];
+      if (entry !== undefined) {
+        const info = getProfileEntry(entry);
+        if (info.version) {
+          // Version specified: change if this is the target version but disabled, or wrong version but enabled
+          if (m.version === info.version) return !m.enabled;
+          return m.enabled; // wrong version that's enabled → needs disabling
+        }
+        return info.enabled !== m.enabled;
+      }
+      return m.enabled; // mod not in snapshot but currently enabled → needs disabling
+    });
+
+    if (missingModIds.length > 0 || versionMismatches.length > 0) {
+      const missingInfo = missingModIds.map(id => {
+        const entry = profile.snapshot[id];
+        const info = getProfileEntry(entry);
+        return { id, version: info.version };
+      });
+      setMissingModsDialog({
+        profileName: name,
+        missingMods: missingInfo,
+        versionMismatches,
+        onIgnore: async () => {
+          setMissingModsDialog(null);
+          await applyProfileState(profile);
+          refreshMods();
+          setShowProfiles(false);
+          showToast(`已应用配置 "${name}"（已忽略 ${missingModIds.length} 个缺失 MOD${versionMismatches.length > 0 ? `、${versionMismatches.length} 个版本不匹配` : ''}）`);
+        },
+        onUpdate: async () => {
+          setMissingModsDialog(null);
+          // Remove missing mods from snapshot and save
+          const updatedSnapshot = { ...profile.snapshot };
+          missingModIds.forEach(id => delete updatedSnapshot[id]);
+          // For version mismatches, update to the first available version
+          versionMismatches.forEach(m => {
+            if (m.availableVersions && m.availableVersions.length > 0) {
+              const firstAvail = m.availableVersions[0];
+              updatedSnapshot[m.id] = { ...updatedSnapshot[m.id], version: firstAvail !== '未知' ? firstAvail : null };
+            }
+          });
+          const updatedProfile = { ...profile, snapshot: updatedSnapshot, savedAt: new Date().toISOString() };
+          const updated = { ...profiles, [name]: updatedProfile };
+          await window.api.saveProfiles(updated);
+          setProfiles(updated);
+          // Apply the updated profile immediately
+          await applyProfileState(updatedProfile);
+          refreshMods();
+          setShowProfiles(false);
+          showToast(`配置 "${name}" 已更新并应用（移除了 ${missingModIds.length} 个缺失 MOD，更新了 ${versionMismatches.length} 个 MOD 版本）`);
+        },
+      });
+      return;
+    }
+
     setConfirmDialog({
       title: `应用配置「${name}」`,
       message: changes.length > 0
@@ -219,12 +340,7 @@ export default function App() {
       danger: false,
       onConfirm: async () => {
         setConfirmDialog(null);
-        for (const mod of mods) {
-          const shouldBeEnabled = profile.snapshot[mod.id];
-          if (shouldBeEnabled !== undefined && shouldBeEnabled !== mod.enabled) {
-            await window.api.toggleMod(mod);
-          }
-        }
+        await applyProfileState(profile);
         refreshMods();
         setShowProfiles(false);
         showToast(`已应用配置 "${name}"`);
@@ -369,7 +485,7 @@ export default function App() {
                                 <div className="min-w-0 flex-1">
                                   <p className="text-xs font-medium truncate">{name}</p>
                                   <p className="text-[10px] text-gray-400">
-                                    {Object.values(profile.snapshot).filter(Boolean).length} 个 MOD
+                                    {Object.values(profile.snapshot).filter(v => typeof v === 'boolean' ? v : v?.enabled).length} 个 MOD
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-1">
@@ -787,6 +903,73 @@ export default function App() {
               <button onClick={() => setCrashReport(null)}
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
                 关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Missing Mods Dialog */}
+      {missingModsDialog && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setMissingModsDialog(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[480px] max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
+              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+                <AlertTriangle size={20} className="text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">配置「{missingModsDialog.profileName}」存在问题</h3>
+                <p className="text-xs text-gray-400">
+                  {missingModsDialog.missingMods?.length > 0 && `${missingModsDialog.missingMods.length} 个 MOD 缺失`}
+                  {missingModsDialog.missingMods?.length > 0 && missingModsDialog.versionMismatches?.length > 0 && ' · '}
+                  {missingModsDialog.versionMismatches?.length > 0 && `${missingModsDialog.versionMismatches.length} 个版本变更`}
+                </p>
+              </div>
+            </div>
+            <div className="px-6 py-4 overflow-y-auto max-h-52 space-y-3">
+              {missingModsDialog.missingMods?.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase mb-1">缺失的 MOD</p>
+                  {missingModsDialog.missingMods.map((m, i) => (
+                    <div key={i} className="flex items-center gap-3 py-1.5">
+                      <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
+                        <X size={12} className="text-red-400" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-800 truncate">{m.id}</p>
+                        {m.version && <p className="text-[10px] text-gray-400">记录版本: {m.version}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {missingModsDialog.versionMismatches?.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase mb-1">版本不匹配的 MOD</p>
+                  {missingModsDialog.versionMismatches.map((m, i) => (
+                    <div key={i} className="flex items-center gap-3 py-1.5">
+                      <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                        <Info size={12} className="text-amber-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-800 truncate">{m.id}</p>
+                        <p className="text-[10px] text-gray-400">
+                          记录: {m.savedVersion}，可用版本: {m.availableVersions?.join(', ') || '无'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
+              <button onClick={missingModsDialog.onIgnore}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors">
+                忽略，继续应用
+              </button>
+              <button onClick={missingModsDialog.onUpdate}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+                更新配置
               </button>
             </div>
           </div>

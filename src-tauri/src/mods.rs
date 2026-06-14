@@ -145,7 +145,9 @@ fn try_parse_mod(full_path: &Path, item_name: &str, enabled: bool) -> Option<Mod
                         id: data.get("id").and_then(|v| v.as_str()).map(String::from),
                         name: data.get("name").and_then(|v| v.as_str()).map(String::from),
                         author: data.get("author").and_then(|v| v.as_str()).map(String::from),
-                        version: data.get("version").and_then(|v| v.as_str()).map(String::from),
+                        version: data.get("version").and_then(|v| v.as_str()).map(|s| {
+                            s.strip_prefix('v').or_else(|| s.strip_prefix('V')).unwrap_or(s).to_string()
+                        }),
                         description: data
                             .get("description")
                             .and_then(|v| v.as_str())
@@ -228,7 +230,9 @@ fn try_parse_mod(full_path: &Path, item_name: &str, enabled: bool) -> Option<Mod
                     id: data.get("id").and_then(|v| v.as_str()).map(String::from),
                     name: data.get("name").and_then(|v| v.as_str()).map(String::from),
                     author: data.get("author").and_then(|v| v.as_str()).map(String::from),
-                    version: data.get("version").and_then(|v| v.as_str()).map(String::from),
+                    version: data.get("version").and_then(|v| v.as_str()).map(|s| {
+                        s.strip_prefix('v').or_else(|| s.strip_prefix('V')).unwrap_or(s).to_string()
+                    }),
                     description: data
                         .get("description")
                         .and_then(|v| v.as_str())

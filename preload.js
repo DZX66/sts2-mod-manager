@@ -47,6 +47,10 @@ contextBridge.exposeInMainWorld('api', {
   loadTranslations: () => ipcRenderer.invoke('translations:load'),
   saveTranslations: (data) => ipcRenderer.invoke('translations:save', data),
 
+  // Mod Notes
+  loadModNotes: () => ipcRenderer.invoke('mods:notesLoad'),
+  saveModNotes: (data) => ipcRenderer.invoke('mods:notesSave', data),
+
   // Saves
   scanSaves: () => ipcRenderer.invoke('saves:scan'),
   exportSave: (opts) => ipcRenderer.invoke('saves:export', opts),
