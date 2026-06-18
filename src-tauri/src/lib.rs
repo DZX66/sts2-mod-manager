@@ -30,6 +30,8 @@ pub fn run() {
             config::app_init,
             config::app_select_game_path,
             config::app_get_version,
+            config::config_get,
+            config::config_set,
             // Window
             window_minimize,
             window_maximize,

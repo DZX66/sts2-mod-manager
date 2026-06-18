@@ -226,6 +226,9 @@
     "about": "About",
     "aboutDesc": "App info and related links",
     "appVersion": "App Version",
+    "smartInstall": "Smart Install",
+    "smartInstallDesc": "Extraction mode when installing MODs",
+    "smartInstallLabel": "Smart mode (auto-create folders, enabled by default)",
     "github": "GitHub"
   },
   "crashDialog": {

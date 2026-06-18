@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight } from 'lucide-react';
+import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu } from 'lucide-react';
 import { useT } from '../i18n/I18nContext';
 
 export default function SettingsPage() {
@@ -7,12 +7,19 @@ export default function SettingsPage() {
   const [theme, setTheme] = useState(() => localStorage.getItem('sts2-theme') || 'system');
   const [gamePath, setGamePath] = useState(null);
   const [appVersion, setAppVersion] = useState('');
+  const [smartInstall, setSmartInstall] = useState(true);
 
   useEffect(() => {
     window.api.init().then(info => {
       if (info.gamePath) setGamePath(info.gamePath);
     });
     window.api.getAppVersion().then(v => setAppVersion(v)).catch(() => setAppVersion('1.1.0'));
+    // Load config
+    window.api.getConfig().then(cfg => {
+      if (cfg.smartInstall !== undefined) {
+        setSmartInstall(cfg.smartInstall);
+      }
+    }).catch(() => {});
   }, []);
 
   const handleThemeChange = (newTheme) => {
@@ -36,6 +43,17 @@ export default function SettingsPage() {
   const handleSelectGamePath = async () => {
     const info = await window.api.selectGamePath();
     if (info) setGamePath(info.gamePath);
+  };
+
+  const handleSmartInstallChange = async (value) => {
+    setSmartInstall(value);
+    try {
+      const cfg = await window.api.getConfig();
+      cfg.smartInstall = value;
+      await window.api.setConfig(cfg);
+    } catch (e) {
+      console.error('Failed to save config:', e);
+    }
   };
 
   const themeOptions = [
@@ -114,6 +132,34 @@ export default function SettingsPage() {
                 {opt.label}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Smart Install */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-6 mb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+              <Cpu size={18} className="text-gray-600" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.smartInstall')}</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t('settings.smartInstallDesc')}</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500 dark:text-gray-400">{t('settings.smartInstallLabel')}</span>
+            <button
+              onClick={() => handleSmartInstallChange(!smartInstall)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                smartInstall ? 'bg-gray-900' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  smartInstall ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
           </div>
         </div>
 

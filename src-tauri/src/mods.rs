@@ -504,7 +504,9 @@ pub fn mods_uninstall(
     }
 }
 
-fn smart_extract_zip(zip_path: &str, mods_dir: &Path) -> Result<(), String> {
+/// Smart extract: given a zip, find mod manifest .json files and organize into folder mods.
+/// * `smart_mode` - if true, use smart folder-based extraction; if false, use legacy extraction
+fn smart_extract_zip(zip_path: &str, mods_dir: &Path, smart_mode: bool) -> Result<(), String> {
     let ext = Path::new(zip_path)
         .extension()
         .map(|e| e.to_string_lossy().to_lowercase())
@@ -523,6 +525,137 @@ fn smart_extract_zip(zip_path: &str, mods_dir: &Path) -> Result<(), String> {
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!(
         "无法读取压缩包: {}\n\n该文件可能已损坏或不是有效的 ZIP 格式。",
         e
+    ))?;
+
+    if archive.len() == 0 {
+        return Err(format!("压缩包为空: {}", Path::new(zip_path).file_name().unwrap_or_default().to_string_lossy()));
+    }
+
+    if smart_mode {
+        // ── Smart mode: find JSON manifests in all subfolders, create folder mods ──
+        // First pass: collect all entry paths and metadata (to avoid borrowing conflicts)
+        let mut entries_meta: Vec<(String, bool)> = Vec::new(); // (name, is_dir)
+        for i in 0..archive.len() {
+            let entry = archive.by_index(i).map_err(|e| e.to_string())?;
+            let name = entry.name().replace('\\', "/");
+            entries_meta.push((name, entry.is_dir()));
+        }
+
+        // Second pass: read JSON content
+        let mut json_by_dir: std::collections::BTreeMap<String, Vec<(String, String)>> = std::collections::BTreeMap::new();
+
+        for (name, is_dir) in &entries_meta {
+            if *is_dir {
+                continue;
+            }
+            // Determine containing directory
+            let dir = if let Some(idx) = name.rfind('/') {
+                name[..idx].to_string()
+            } else {
+                String::new() // root
+            };
+
+            if !name.ends_with(".json") || name.starts_with('.') {
+                continue;
+            }
+
+            // Find index of this entry to read it
+            let idx = entries_meta.iter().position(|(n, _)| n == name).unwrap();
+            // Try to read and parse the JSON
+            let mut buf = Vec::new();
+            let mut entry = archive.by_index(idx).map_err(|e| e.to_string())?;
+            std::io::Read::read_to_end(&mut entry, &mut buf).map_err(|e| e.to_string())?;
+            if let Ok(text) = String::from_utf8(buf) {
+                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
+                    if val.get("id").is_some() && val.get("name").is_some() {
+                        let file_name = name.rsplit('/').next().unwrap_or(name).to_string();
+                        json_by_dir.entry(dir).or_default().push((name.clone(), file_name));
+                    }
+                }
+            }
+        }
+
+        if json_by_dir.is_empty() {
+            // No manifest found, fallback to legacy mode
+            return fallback_extract_zip(zip_path, mods_dir);
+        }
+
+        // Check for multiple .json files in the same directory -> fallback
+        let has_multi_json = json_by_dir.values().any(|v| v.len() > 1);
+        if has_multi_json {
+            return fallback_extract_zip(zip_path, mods_dir);
+        }
+
+        // Re-open for extraction
+        let file2 = fs::File::open(zip_path).map_err(|e| e.to_string())?;
+        let mut archive2 = zip::ZipArchive::new(file2).map_err(|e| e.to_string())?;
+
+        for (dir, _jsons) in &json_by_dir {
+            let mod_folder_name = if dir.is_empty() {
+                // JSON is at root - use the JSON filename (without .json) as folder name
+                let json_file_name = _jsons[0].1.trim_end_matches(".json").to_string();
+                json_file_name
+            } else {
+                // JSON is in a subfolder - use that subfolder's name as folder name
+                dir.rsplit('/').next().unwrap_or(dir).to_string()
+            };
+
+            let dest_dir = mods_dir.join(&mod_folder_name);
+            let _ = fs::create_dir_all(&dest_dir);
+
+            // Get all files that belong in this mod directory
+            let _prefix = if dir.is_empty() {
+                String::new()
+            } else {
+                format!("{}/", dir)
+            };
+
+            // Extract all files belonging to this mod
+            for i in 0..archive2.len() {
+                let mut entry = archive2.by_index(i).map_err(|e| e.to_string())?;
+                let ep = entry.name().replace('\\', "/");
+                if entry.is_dir() { continue; }
+
+                let rel = if dir.is_empty() {
+                    // JSON is at zip root: extract all files preserving subdirectory structure
+                    Some(&ep[..])
+                } else {
+                    // JSON is in a subfolder: extract only files under that subfolder
+                    let search_prefix = format!("{}/", dir);
+                    if ep.starts_with(&search_prefix) {
+                        Some(&ep[search_prefix.len()..])
+                    } else {
+                        None
+                    }
+                };
+
+                if let Some(relative_path) = rel {
+                    if !relative_path.is_empty() {
+                        let out_path = dest_dir.join(relative_path);
+                        if let Some(parent) = out_path.parent() {
+                            let _ = fs::create_dir_all(parent);
+                        }
+                        let mut outfile = fs::File::create(&out_path).map_err(|e| e.to_string())?;
+                        std::io::copy(&mut entry, &mut outfile).map_err(|e| e.to_string())?;
+                    }
+                }
+            }
+        }
+
+        return Ok(());
+    }
+
+    // ── Legacy mode (non-smart) ──
+    fallback_extract_zip(zip_path, mods_dir)
+}
+
+/// Original legacy extraction logic (fallback)
+fn fallback_extract_zip(zip_path: &str, mods_dir: &Path) -> Result<(), String> {
+    let file = fs::File::open(zip_path).map_err(|e| format!(
+        "无法读取压缩包: {}", e
+    ))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| format!(
+        "无法读取压缩包: {}", e
     ))?;
 
     if archive.len() == 0 {
@@ -670,6 +803,12 @@ fn copy_dir_recursive(src: &Path, dest: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn is_smart_install_default(_state: &AppState) -> bool {
+    // Load config and check smart_install setting, default to true
+    let cfg = crate::config::load_config();
+    cfg.smart_install.unwrap_or(true)
+}
+
 #[tauri::command]
 pub async fn mods_install(
     app: tauri::AppHandle,
@@ -687,6 +826,8 @@ pub async fn mods_install(
             })
         }
     };
+
+    let smart_mode = is_smart_install_default(&state);
 
     let mods_dir = get_mods_dir(&game_path);
     let dialog = app.dialog();
@@ -715,7 +856,7 @@ pub async fn mods_install(
         let result = if p.is_dir() {
             install_folder(&path_str, &mods_dir)
         } else {
-            smart_extract_zip(&path_str, &mods_dir)
+            smart_extract_zip(&path_str, &mods_dir, smart_mode)
         };
         if let Err(e) = result {
             return Ok(ModResult {
@@ -758,6 +899,7 @@ pub fn mods_install_drop(
         }
     };
 
+    let smart_mode = is_smart_install_default(&state);
     let mods_dir = get_mods_dir(&game_path);
     let mut installed = Vec::new();
 
@@ -766,7 +908,7 @@ pub fn mods_install_drop(
         let result = if p.is_dir() {
             install_folder(fp, &mods_dir)
         } else {
-            smart_extract_zip(fp, &mods_dir)
+            smart_extract_zip(fp, &mods_dir, smart_mode)
         };
         if let Err(e) = result {
             return ModResult {
@@ -921,7 +1063,8 @@ pub async fn mods_restore(
     match file {
         Some(path) => {
             let path_str = path.to_string();
-            if let Err(e) = smart_extract_zip(&path_str, &mods_dir) {
+            // For restore, use smart_mode=true to ensure folder structure
+            if let Err(e) = smart_extract_zip(&path_str, &mods_dir, true) {
                 return Ok(ModResult {
                     success: false,
                     error: Some(e),

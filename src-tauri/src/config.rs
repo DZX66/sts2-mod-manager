@@ -8,6 +8,8 @@ use tauri_plugin_dialog::DialogExt;
 pub struct Config {
     #[serde(rename = "gamePath")]
     pub game_path: Option<String>,
+    #[serde(rename = "smartInstall")]
+    pub smart_install: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -173,4 +175,14 @@ pub async fn app_select_game_path(
     } else {
         Ok(None)
     }
+}
+
+#[tauri::command]
+pub fn config_get() -> Config {
+    load_config()
+}
+
+#[tauri::command]
+pub fn config_set(new_config: Config) {
+    save_config(&new_config);
 }

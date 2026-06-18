@@ -45,6 +45,8 @@ window.api = {
   init: () => invoke('app_init'),
   getAppVersion: () => invoke('app_get_version'),
   selectGamePath: () => invoke('app_select_game_path'),
+  getConfig: () => invoke('config_get'),
+  setConfig: (config) => invoke('config_set', { newConfig: config }),
 
   // Window
   minimize: () => invoke('window_minimize'),

@@ -226,6 +226,9 @@
     "about": "关于",
     "aboutDesc": "应用信息和相关链接",
     "appVersion": "应用版本",
+    "smartInstall": "智能安装",
+    "smartInstallDesc": "安装 MOD 时的解压方式",
+    "smartInstallLabel": "智能模式（自动创建文件夹，默认开启）",
     "github": "GitHub"
   },
   "crashDialog": {
