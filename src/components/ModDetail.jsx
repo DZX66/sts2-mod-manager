@@ -86,14 +86,14 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
   const hasEnglishContent = !isChinese(mod.description) || !isChinese(mod.name);
 
   return (
-    <div className="w-80 bg-white border-l border-gray-100 flex flex-col overflow-hidden">
+    <div className="w-80 bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50 dark:border-gray-800">
         <div className="min-w-0 flex-1 mr-2">
-          <h2 className="font-bold text-base truncate">{translatedName || mod.name}</h2>
-          {translatedName && <p className="text-[11px] text-gray-400 truncate">{mod.name}</p>}
+          <h2 className="font-bold text-base truncate dark:text-gray-100">{translatedName || mod.name}</h2>
+          {translatedName && <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{mod.name}</p>}
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
+        <button onClick={onClose} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 transition-colors flex-shrink-0">
           <X size={18} />
         </button>
       </div>
@@ -101,11 +101,11 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
         {/* Status */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">状态</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">状态</span>
           <button onClick={onToggle} className="flex items-center gap-2">
-            {mod.enabled
+          {mod.enabled
               ? <><span className="text-sm text-emerald-600 font-medium">已启用</span><ToggleRight size={24} className="text-emerald-500" /></>
-              : <><span className="text-sm text-gray-400 font-medium">已禁用</span><ToggleLeft size={24} className="text-gray-300" /></>
+              : <><span className="text-sm text-gray-400 dark:text-gray-500 font-medium">已禁用</span><ToggleLeft size={24} className="text-gray-300 dark:text-gray-600" /></>
             }
           </button>
         </div>
@@ -133,17 +133,17 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
             ...(mod.min_game_version ? [['所需游戏版本', `≥ v${mod.min_game_version}`]] : []),
           ].map(([label, value]) => (
             <div key={label} className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">{label}</span>
-              <span className="text-xs text-gray-700 font-medium">{value}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">{label}</span>
+              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">{value}</span>
             </div>
           ))}
         </div>
 
         {/* Version incompatibility warning */}
         {versionIncompatible && mod.enabled && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-lg">
+          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950 rounded-lg">
             <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
-            <span className="text-xs text-amber-700">
+            <span className="text-xs text-amber-700 dark:text-amber-400">
               此 MOD 需要游戏 v{mod.min_game_version} 以上版本，当前游戏版本为 {gameVersion}，可能无法正常工作
             </span>
           </div>
@@ -152,7 +152,7 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
         {/* Description */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <p className="text-xs text-gray-400">描述</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">描述</p>
             {hasEnglishContent && (
               <button onClick={handleTranslate} disabled={translating}
                 className="flex items-center gap-1 text-[11px] text-blue-500 hover:text-blue-700 disabled:text-gray-300 transition-colors">
@@ -163,11 +163,11 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
           </div>
           {translatedDesc ? (
             <>
-              <p className="text-sm text-gray-700 leading-relaxed">{translatedDesc}</p>
-              <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">{mod.description}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{translatedDesc}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5 leading-relaxed">{mod.description}</p>
             </>
           ) : (
-            <p className="text-sm text-gray-600 leading-relaxed">{mod.description || '暂无描述'}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{mod.description || '暂无描述'}</p>
           )}
           {translateError && (
             <p className="mt-1 text-xs text-red-400">翻译失败: {translateError}</p>
@@ -180,7 +180,7 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
         {/* Dependencies */}
         {mod.dependencies && mod.dependencies.length > 0 && (
           <div>
-            <p className="text-xs text-gray-400 mb-2">依赖项</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">依赖项</p>
             {mod.dependencies.map(dep => {
               const result = checkDepSatisfied(dep, allMods);
               const isMissing = !result.satisfied;
@@ -207,20 +207,20 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
 
         {/* Dependents warning */}
         {dependents.length > 0 && (
-          <div className="bg-amber-50 rounded-lg p-3">
-            <p className="text-xs text-amber-700 font-medium mb-1">⚠ 以下 MOD 依赖此 MOD</p>
+          <div className="bg-amber-50 dark:bg-amber-950 rounded-lg p-3">
+            <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mb-1">⚠ 以下 MOD 依赖此 MOD</p>
             {dependents.map(d => (
-              <p key={d.id} className="text-xs text-amber-600">{d.name}</p>
+              <p key={d.id} className="text-xs text-amber-600 dark:text-amber-500">{d.name}</p>
             ))}
           </div>
         )}
 
         {/* Files */}
         <div>
-          <p className="text-xs text-gray-400 mb-2">文件列表</p>
-          <div className="space-y-1">
-            {(mod.files || []).map(f => (
-              <div key={f} className="flex items-center gap-2 text-xs text-gray-500 py-1">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">文件列表</p>
+            <div className="space-y-1">
+              {(mod.files || []).map(f => (
+                <div key={f} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 py-1">
                 {f.endsWith('.dll') ? <Code size={12} /> :
                  f.endsWith('.json') ? <FileText size={12} /> :
                  <Box size={12} />}
@@ -232,17 +232,17 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
       </div>
 
       {/* Footer actions */}
-      <div className="p-4 border-t border-gray-50 space-y-2">
+      <div className="p-4 border-t border-gray-50 dark:border-gray-800 space-y-2">
         <button onClick={onToggle}
           className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${
             mod.enabled
-              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               : 'bg-gray-900 text-white hover:bg-gray-800'
           }`}>
           {mod.enabled ? '禁用 MOD' : '启用 MOD'}
         </button>
         <button onClick={onUninstall}
-          className="w-full py-2 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
+          className="w-full py-2 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900 transition-colors flex items-center justify-center gap-2">
           <Trash2 size={14} /> 卸载 MOD
         </button>
       </div>
@@ -309,7 +309,7 @@ function ModNotesEditor({ modId }) {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1">
           <StickyNote size={13} className="text-gray-400" />
-          <p className="text-xs text-gray-400">备注</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">备注</p>
           {saving && <span className="text-[10px] text-gray-300">保存中...</span>}
         </div>
         {notes && (
@@ -328,11 +328,11 @@ function ModNotesEditor({ modId }) {
         onChange={handleChange}
         placeholder="添加备注..."
         rows={3}
-        className={`w-full text-xs border rounded-lg p-2 resize-none transition-colors focus:outline-none focus:ring-1 ${
-          hasNote
-            ? 'border-amber-200 bg-amber-50/50 text-gray-700 focus:ring-amber-300'
-            : 'border-gray-200 bg-gray-50 text-gray-500 focus:ring-gray-300'
-        }`}
+            className={`w-full text-xs border rounded-lg p-2 resize-none transition-colors focus:outline-none focus:ring-1 ${
+              hasNote
+                ? 'border-amber-200 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/30 text-gray-700 dark:text-gray-300 focus:ring-amber-300'
+                : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 focus:ring-gray-300'
+            }`}
       />
     </div>
   );

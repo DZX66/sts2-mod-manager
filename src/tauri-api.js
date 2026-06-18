@@ -43,6 +43,7 @@ function startGameStatePolling() {
 window.api = {
   // App
   init: () => invoke('app_init'),
+  getAppVersion: () => invoke('app_get_version'),
   selectGamePath: () => invoke('app_select_game_path'),
 
   // Window

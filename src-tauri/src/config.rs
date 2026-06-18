@@ -107,6 +107,11 @@ fn detect_game_path() -> Option<String> {
 }
 
 #[tauri::command]
+pub fn app_get_version(config: tauri::Config) -> String {
+    config.version.clone().unwrap_or_else(|| "1.0.0".to_string())
+}
+
+#[tauri::command]
 pub fn app_init(state: tauri::State<'_, AppState>) -> InitResult {
     let cfg = load_config();
     let detected = if let Some(ref gp) = cfg.game_path {

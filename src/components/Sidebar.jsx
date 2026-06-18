@@ -1,12 +1,13 @@
 import React from 'react';
 import {
-  Package, FileText, FolderOpen, Save, HardDrive, ExternalLink, Github,
+  Package, FileText, FolderOpen, Save, HardDrive, ExternalLink, Github, Settings,
 } from 'lucide-react';
 
 const navItems = [
   { id: 'mods', icon: Package, label: 'MOD 管理' },
   { id: 'saves', icon: HardDrive, label: '存档管理' },
   { id: 'logs', icon: FileText, label: '游戏日志' },
+  { id: 'settings', icon: Settings, label: '设置' },
 ];
 
 const quickLinks = [
@@ -18,7 +19,7 @@ const quickLinks = [
 
 export default function Sidebar({ page, setPage, gamePath, onSelectGamePath, enabledCount, totalCount, gameVersion }) {
   return (
-    <div className="w-56 bg-white border-r border-gray-100 flex flex-col">
+    <div className="w-56 bg-white dark:bg-gray-950 border-r border-gray-100 dark:border-gray-800 flex flex-col">
       {/* Nav */}
       <nav className="flex-1 px-3 pt-4">
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">导航</p>
@@ -49,8 +50,8 @@ export default function Sidebar({ page, setPage, gamePath, onSelectGamePath, ena
       </nav>
 
       {/* Game path */}
-      <div className="p-3 border-t border-gray-100">
-        <div className="bg-gray-50 rounded-lg p-3">
+      <div className="p-3 border-t border-gray-100 dark:border-gray-800">
+        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
           <div className="flex items-center justify-between mb-1">
             <p className="text-[10px] font-semibold text-gray-400 uppercase">游戏路径</p>
             <button onClick={onSelectGamePath}
@@ -60,7 +61,7 @@ export default function Sidebar({ page, setPage, gamePath, onSelectGamePath, ena
             </button>
           </div>
           {gamePath ? (
-            <p className="text-xs text-gray-600 truncate cursor-pointer hover:text-blue-600 transition-colors"
+            <p className="text-xs text-gray-600 dark:text-gray-400 truncate cursor-pointer hover:text-blue-600 transition-colors"
               title={gamePath} onClick={onSelectGamePath}>{gamePath}</p>
           ) : (
             <button onClick={onSelectGamePath}
@@ -70,11 +71,11 @@ export default function Sidebar({ page, setPage, gamePath, onSelectGamePath, ena
           )}
           <div className="flex items-center gap-2 mt-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-[11px] text-gray-500">{enabledCount}/{totalCount} MOD 已启用</span>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">{enabledCount}/{totalCount} MOD 已启用</span>
           </div>
           {gameVersion && (
             <div className="mt-2 pt-2 border-t border-gray-100">
-              <p className="text-[10px] text-gray-400">游戏版本: <span className="text-gray-600 font-medium">{gameVersion}</span></p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">游戏版本: <span className="text-gray-600 dark:text-gray-300 font-medium">{gameVersion}</span></p>
             </div>
           )}
         </div>

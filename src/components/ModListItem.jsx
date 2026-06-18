@@ -30,8 +30,8 @@ export default function ModListItem({ mod, allMods, translations, selected, mult
     <div
       onClick={onClick}
       draggable={draggable}
-      className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer border-b border-gray-50 transition-colors group ${
-        selected ? 'bg-blue-50 border-l-2 border-l-blue-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'
+      className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer border-b border-gray-50 dark:border-gray-800 transition-colors group ${
+        selected ? 'bg-blue-50 dark:bg-blue-950 border-l-2 border-l-blue-500' : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-l-2 border-l-transparent'
       } ${!mod.enabled ? 'opacity-50' : ''}`}
     >
       {/* Multi-select checkbox */}
@@ -40,7 +40,7 @@ export default function ModListItem({ mod, allMods, translations, selected, mult
         checked={multiSelected}
         onChange={(e) => { e.stopPropagation(); onCheckToggle(); }}
         onClick={(e) => e.stopPropagation()}
-        className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-400 flex-shrink-0 cursor-pointer"
+        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-500 focus:ring-blue-400 flex-shrink-0 cursor-pointer"
       />
 
       {/* Drag handle */}
@@ -51,7 +51,7 @@ export default function ModListItem({ mod, allMods, translations, selected, mult
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-medium truncate">{(t && t.name) || mod.name}</span>
+          <span className="text-sm font-medium truncate dark:text-gray-100">{(t && t.name) || mod.name}</span>
           {missingDeps.length > 0 && mod.enabled && (
             <span className="flex items-center gap-0.5 text-[10px] text-red-500 font-medium flex-shrink-0">
               <AlertTriangle size={11} /> 缺依赖
@@ -64,8 +64,8 @@ export default function ModListItem({ mod, allMods, translations, selected, mult
           )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[11px] text-gray-400 truncate">{mod.author || '未知'}</span>
-          <span className="text-[11px] text-gray-300">v{mod.version}</span>
+          <span className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{mod.author || '未知'}</span>
+          <span className="text-[11px] text-gray-300 dark:text-gray-600">v{mod.version}</span>
           {missingDeps.length > 0 && mod.enabled && (
             <span className="text-[10px] text-red-400 truncate">缺少: {missingDeps.join(', ')}</span>
           )}
@@ -89,7 +89,7 @@ export default function ModListItem({ mod, allMods, translations, selected, mult
             {mod.dependencies.length}依赖
           </span>
         )}
-        <span className="text-[10px] text-gray-300 w-12 text-right">{formatSize(mod.size)}</span>
+        <span className="text-[10px] text-gray-300 dark:text-gray-600 w-12 text-right">{formatSize(mod.size)}</span>
       </div>
 
       {/* Toggle */}

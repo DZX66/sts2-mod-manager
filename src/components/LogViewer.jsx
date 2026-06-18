@@ -10,10 +10,10 @@ function isWarnLine(line) {
 }
 
 function colorLine(line) {
-  if (isErrorLine(line)) return 'text-red-600 bg-red-50';
-  if (isWarnLine(line)) return 'text-amber-600 bg-amber-50';
-  if (line.includes('[INFO]')) return 'text-gray-600';
-  return 'text-gray-400';
+  if (isErrorLine(line)) return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950';
+  if (isWarnLine(line)) return 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950';
+  if (line.includes('[INFO]')) return 'text-gray-600 dark:text-gray-400';
+  return 'text-gray-400 dark:text-gray-600';
 }
 
 const MAX_VISIBLE_LINES = 2000;
@@ -63,8 +63,8 @@ export default function LogViewer() {
       <div className="px-8 pt-6 pb-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold">游戏日志</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="text-2xl font-bold dark:text-gray-100">游戏日志</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {errorCount > 0 && <span className="text-red-500 font-medium">{errorCount} 个错误</span>}
               {errorCount > 0 && warnCount > 0 && ' · '}
               {warnCount > 0 && <span className="text-amber-500 font-medium">{warnCount} 个警告</span>}
@@ -73,11 +73,11 @@ export default function LogViewer() {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={loadLogs}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 刷新
             </button>
             <button onClick={() => window.api.openLogsDir()}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               <FileText size={16} /> 打开文件夹
             </button>
           </div>
@@ -88,19 +88,19 @@ export default function LogViewer() {
           {/* File selector */}
           <div className="relative">
             <select value={selectedFile} onChange={(e) => handleFileChange(e.target.value)}
-              className="appearance-none bg-white border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200">
+              className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-100">
               {files.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
             <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
 
           {/* Filter */}
-          <div className="flex bg-gray-100 rounded-lg p-0.5">
+          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
             {[['all', '全部'], ['warn', '警告+'], ['error', '仅错误']].map(([key, label]) => (
               <button key={key}
                 onClick={() => setFilterLevel(key)}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  filterLevel === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  filterLevel === key ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}>
                 {label}
               </button>
@@ -113,17 +113,17 @@ export default function LogViewer() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索日志..."
-            className="flex-1 max-w-xs px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
+            className="flex-1 max-w-xs px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-100"
           />
         </div>
       </div>
 
       {/* Log content */}
       <div className="flex-1 overflow-y-auto px-8 pb-6">
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-          <div className="font-mono text-xs leading-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="font-mono text-xs leading-6 dark:text-gray-300">
             {lines.slice(0, visibleCount).map((line, i) => (
-              <div key={i} className={`px-4 py-0.5 border-b border-gray-50 ${colorLine(line)}`}>
+              <div key={i} className={`px-4 py-0.5 border-b border-gray-50 dark:border-gray-700 ${colorLine(line)}`}>
                 <span className="text-gray-300 mr-3 select-none">{String(i + 1).padStart(3, ' ')}</span>
                 {line}
               </div>

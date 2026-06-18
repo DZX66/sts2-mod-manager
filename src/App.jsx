@@ -4,6 +4,7 @@ import ModCard from './components/ModCard';
 import ModListItem from './components/ModListItem';
 import ModDetail from './components/ModDetail';
 import LogViewer from './components/LogViewer';
+import SettingsPage from './components/SettingsPage';
 import SaveManager from './components/SaveManager';
 import TitleBar from './components/TitleBar';
 import {
@@ -416,7 +417,7 @@ export default function App() {
   const disabledCount = mods.filter(m => !m.enabled).length;
 
   return (
-    <div className="h-screen flex flex-col bg-white text-gray-900">
+    <div className="h-screen flex flex-col bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       <TitleBar />
 
       <div className="flex flex-1 overflow-hidden">
@@ -431,7 +432,7 @@ export default function App() {
         />
 
         <main
-          className={`flex-1 flex flex-col overflow-hidden transition-colors ${dragOver ? 'bg-blue-50' : 'bg-gray-50'}`}
+          className={`flex-1 flex flex-col overflow-hidden transition-colors ${dragOver ? 'bg-blue-50 dark:bg-blue-950' : 'bg-gray-50 dark:bg-gray-900'}`}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
@@ -453,38 +454,38 @@ export default function App() {
                       <Download size={16} /> 安装 MOD
                     </button>
                     <button onClick={refreshMods}
-                      className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                      className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                       <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 刷新
                     </button>
                     {/* Profiles dropdown */}
                     <div className="relative">
                       <button onClick={() => setShowProfiles(!showProfiles)}
-                        className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                        className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                         <Layers size={16} /> 档案 <ChevronDown size={12} />
                       </button>
                       {showProfiles && (
-                        <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-                          <div className="p-3 border-b border-gray-50">
+                        <div className="absolute right-0 top-full mt-1 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden">
+                          <div className="p-3 border-b border-gray-50 dark:border-gray-700">
                             <div className="flex gap-1.5">
                               <input type="text" value={newProfileName} onChange={e => setNewProfileName(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleSaveProfile()}
                                 placeholder="输入配置名称..."
-                                className="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-gray-300" />
+                                className="flex-1 px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-gray-300 dark:bg-gray-700 dark:text-gray-100" />
                               <button onClick={handleSaveProfile}
                                 className="px-2.5 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800">
                                 <Save size={12} />
                               </button>
                             </div>
-                            <p className="text-[10px] text-gray-400 mt-1.5">当前 {enabledCount} 个 MOD 已启用</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">当前 {enabledCount} 个 MOD 已启用</p>
                           </div>
                           <div className="max-h-48 overflow-y-auto">
                             {Object.keys(profiles).length === 0 ? (
-                              <p className="text-xs text-gray-400 text-center py-4">暂无配置</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-4">暂无配置</p>
                             ) : Object.entries(profiles).map(([name, profile]) => (
-                              <div key={name} className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 group">
+                              <div key={name} className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 group">
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-xs font-medium truncate">{name}</p>
-                                  <p className="text-[10px] text-gray-400">
+                                  <p className="text-xs font-medium truncate dark:text-gray-100">{name}</p>
+                                  <p className="text-[10px] text-gray-400 dark:text-gray-500">
                                     {Object.values(profile.snapshot).filter(v => typeof v === 'boolean' ? v : v?.enabled).length} 个 MOD
                                   </p>
                                 </div>
@@ -526,13 +527,13 @@ export default function App() {
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
                       placeholder="搜索 MOD 名称、作者..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" />
+                      className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
-                  <div className="flex bg-gray-100 rounded-lg p-0.5">
+                  <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
                     {[['all', '全部'], ['enabled', '已启用'], ['disabled', '已禁用']].map(([key, label]) => (
                       <button key={key} onClick={() => setFilter(key)}
                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                          filter === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                          filter === key ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}>
                         {label}
                       </button>
@@ -541,18 +542,18 @@ export default function App() {
                   {/* Sort dropdown */}
                   <div className="relative">
                     <button onClick={() => setShowSortMenu(!showSortMenu)}
-                      className="flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 bg-gray-100 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-200 transition-colors">
-                      <ArrowUpDown size={13} className="text-gray-400" />
+                      className="flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                      <ArrowUpDown size={13} className="text-gray-400 dark:text-gray-500" />
                       {{ name: '名称', depIssues: '依赖问题', gameplay: '影响玩法', category: '分类', size: '大小' }[sortBy]}
                       <ChevronDown size={11} className="text-gray-400" />
                     </button>
                     {showSortMenu && (
-                      <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden py-1">
+                      <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden py-1">
                         {[['name', '按名称'], ['depIssues', '依赖问题优先'], ['gameplay', '影响玩法优先'], ['category', '按分类'], ['size', '按大小']].map(([key, label]) => (
                           <button key={key}
                             onClick={() => { setSortBy(key); setShowSortMenu(false); }}
                             className={`w-full text-left px-3 py-2 text-xs transition-colors ${
-                              sortBy === key ? 'bg-gray-900 text-white font-medium' : 'text-gray-600 hover:bg-gray-50'
+                              sortBy === key ? 'bg-gray-900 dark:bg-gray-700 text-white font-medium' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                             }`}>
                             {label}
                           </button>
@@ -561,14 +562,14 @@ export default function App() {
                     )}
                   </div>
                   {/* View toggle */}
-                  <div className="flex bg-gray-100 rounded-lg p-0.5">
+                  <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
                     <button onClick={() => setViewMode('grid')}
-                      className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                      className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
                       title="卡片视图">
                       <LayoutGrid size={16} />
                     </button>
                     <button onClick={() => setViewMode('list')}
-                      className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                      className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
                       title="列表视图">
                       <List size={16} />
                     </button>
@@ -779,9 +780,9 @@ export default function App() {
                       onTranslationSaved={() => window.api.loadTranslations && window.api.loadTranslations().then(setTranslations)}
                     />
                   ) : (
-                    <div className="w-80 bg-white border-l border-gray-100 flex flex-col items-center justify-center text-gray-300">
+                    <div className="w-80 bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-gray-300 dark:text-gray-600">
                       <Package size={40} className="mb-3" />
-                      <p className="text-sm">选择一个 MOD 查看详情</p>
+                      <p className="text-sm dark:text-gray-500">选择一个 MOD 查看详情</p>
                     </div>
                   )}
                 </div>
@@ -791,6 +792,7 @@ export default function App() {
 
           {page === 'saves' && <SaveManager />}
           {page === 'logs' && <LogViewer />}
+          {page === 'settings' && <SettingsPage />}
         </main>
       </div>
 

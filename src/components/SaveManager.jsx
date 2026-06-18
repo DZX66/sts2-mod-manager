@@ -31,29 +31,29 @@ function SaveSummary({ summary, accent }) {
     <div className="space-y-3 mb-4">
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-2">
-        <div className="bg-gray-50 rounded-lg px-3 py-2">
-          <div className="flex items-center gap-1.5 text-gray-400 mb-0.5">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-0.5">
             <Clock size={11} /><span className="text-[10px] uppercase font-semibold">游戏时长</span>
           </div>
-          <p className="text-xs font-medium text-gray-700">{formatPlaytime(summary.totalPlaytime)}</p>
+          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{formatPlaytime(summary.totalPlaytime)}</p>
         </div>
-        <div className="bg-gray-50 rounded-lg px-3 py-2">
-          <div className="flex items-center gap-1.5 text-gray-400 mb-0.5">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-0.5">
             <Trophy size={11} /><span className="text-[10px] uppercase font-semibold">得分</span>
           </div>
-          <p className="text-xs font-medium text-gray-700">{summary.currentScore.toLocaleString()}</p>
+          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{summary.currentScore.toLocaleString()}</p>
         </div>
-        <div className="bg-gray-50 rounded-lg px-3 py-2">
-          <div className="flex items-center gap-1.5 text-gray-400 mb-0.5">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-0.5">
             <Layers size={11} /><span className="text-[10px] uppercase font-semibold">爬塔层数</span>
           </div>
-          <p className="text-xs font-medium text-gray-700">{summary.floorsClimbed}</p>
+          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{summary.floorsClimbed}</p>
         </div>
-        <div className="bg-gray-50 rounded-lg px-3 py-2">
-          <div className="flex items-center gap-1.5 text-gray-400 mb-0.5">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-0.5">
             <CreditCard size={11} /><span className="text-[10px] uppercase font-semibold">发现</span>
           </div>
-          <p className="text-xs font-medium text-gray-700">{summary.discoveredCards} 卡 / {summary.discoveredRelics} 遗物</p>
+          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{summary.discoveredCards} 卡 / {summary.discoveredRelics} 遗物</p>
         </div>
       </div>
 
@@ -91,14 +91,14 @@ function SlotCard({ slotName, slot, modded, onExport, onImport }) {
   const borderClass = isEmpty ? 'border-gray-100' : modded ? 'border-purple-200 shadow-sm' : 'border-gray-200 shadow-sm';
 
   return (
-    <div className={`bg-white rounded-xl border p-5 transition-colors ${borderClass}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-xl border p-5 transition-colors ${borderClass}`}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-gray-900">
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100">
           {SLOT_LABELS[slotName]}
           {modded && <span className="text-xs text-purple-500 font-normal ml-1.5">MOD</span>}
         </h3>
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-          isEmpty ? 'bg-gray-100 text-gray-400'
+          isEmpty ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
             : modded ? 'bg-purple-50 text-purple-600' : 'bg-emerald-50 text-emerald-600'
         }`}>
           {isEmpty ? '空' : '有数据'}
@@ -137,7 +137,7 @@ function SlotCard({ slotName, slot, modded, onExport, onImport }) {
           <Download size={13} /> 导出
         </button>
         <button onClick={() => onImport(slotName, modded)}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
           <Upload size={13} /> 导入
         </button>
       </div>
@@ -203,18 +203,18 @@ export default function SaveManager() {
       <div className="px-8 pt-6 pb-4">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="text-2xl font-bold">存档管理</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="text-2xl font-bold dark:text-gray-100">存档管理</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               导出、导入和备份你的游戏存档
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={refresh}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 刷新
             </button>
             <button onClick={() => window.api.openSavesDir()}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               <FolderOpen size={16} /> 打开文件夹
             </button>
           </div>
@@ -224,7 +224,7 @@ export default function SaveManager() {
       <div className="flex-1 overflow-y-auto px-8 pb-6 space-y-6">
         {/* Normal saves */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
             <HardDrive size={14} /> 普通存档
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -264,12 +264,12 @@ export default function SaveManager() {
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
               自动备份记录
             </h2>
-            <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700">
               {data.backups.map(b => (
                 <div key={b.name} className="flex items-center justify-between px-5 py-3">
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{b.name}</p>
-                    <p className="text-xs text-gray-400">{formatTime(b.time)} · {formatSize(b.size)}</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{b.name}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">{formatTime(b.time)} · {formatSize(b.size)}</p>
                   </div>
                   <button onClick={() => handleDeleteBackup(b.path)}
                     className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"

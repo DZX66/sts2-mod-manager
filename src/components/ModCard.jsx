@@ -34,15 +34,15 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
   return (
     <div
       onClick={onClick}
-      className={`relative bg-white rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md ${
-        selected ? 'border-gray-900 shadow-md' : missingDeps.length > 0 ? 'border-red-200' : versionIncompatible ? 'border-amber-200' : 'border-gray-100 hover:border-gray-200'
+      className={`relative bg-white dark:bg-gray-800 rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md ${
+        selected ? 'border-gray-900 dark:border-gray-500 shadow-md' : missingDeps.length > 0 ? 'border-red-200 dark:border-red-700' : versionIncompatible ? 'border-amber-200 dark:border-amber-700' : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600'
       } ${!mod.enabled ? 'opacity-60' : ''}`}
     >
       {/* Missing deps banner */}
       {missingDeps.length > 0 && mod.enabled && (
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 -mx-4 -mt-4 mb-3 bg-red-50 rounded-t-xl border-b border-red-100">
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 -mx-4 -mt-4 mb-3 bg-red-50 dark:bg-red-950 rounded-t-xl border-b border-red-100 dark:border-red-800">
           <AlertTriangle size={12} className="text-red-500 flex-shrink-0" />
-          <span className="text-[11px] text-red-600 font-medium truncate">
+          <span className="text-[11px] text-red-600 dark:text-red-400 font-medium truncate">
             缺失依赖，无法正常工作：{missingDeps.map(d => d.id).join(', ')}
           </span>
         </div>
@@ -50,9 +50,9 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
 
       {/* Version incompatibility banner */}
       {versionIncompatible && !missingDeps.length && (
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 -mx-4 -mt-4 mb-3 bg-amber-50 rounded-t-xl border-b border-amber-100">
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 -mx-4 -mt-4 mb-3 bg-amber-50 dark:bg-amber-950 rounded-t-xl border-b border-amber-100 dark:border-amber-800">
           <AlertTriangle size={12} className="text-amber-500 flex-shrink-0" />
-          <span className="text-[11px] text-amber-700 font-medium truncate">
+          <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium truncate">
             需要游戏 v{mod.min_game_version} 以上版本（当前 {gameVersion}）
           </span>
         </div>
@@ -64,7 +64,7 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-sm truncate">{(t && t.name) || mod.name}</h3>
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
             {mod.author} · v{mod.version}
           </p>
         </div>
@@ -81,7 +81,7 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
       </div>
 
       {/* Description */}
-      <p className="text-xs text-gray-500 line-clamp-2 mb-3 leading-relaxed">
+      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-3 leading-relaxed">
         {(t && t.desc) || mod.description || '暂无描述'}
       </p>
 
@@ -91,7 +91,7 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
           <CategoryIcon size={11} /> {category.label}
         </span>
         {!mod.enabled && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-500">已禁用</span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">已禁用</span>
         )}
         {mod.has_dll && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-600">DLL</span>
@@ -106,7 +106,7 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
             <Blocks size={11} className="mr-0.5" /> {mod.dependencies.length} 依赖
           </span>
         )}
-        <span className="ml-auto text-[11px] text-gray-300">{formatSize(mod.size)}</span>
+        <span className="ml-auto text-[11px] text-gray-300 dark:text-gray-600">{formatSize(mod.size)}</span>
       </div>
     </div>
   );
