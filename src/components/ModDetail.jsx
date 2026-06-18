@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, ToggleLeft, ToggleRight, Trash2, AlertTriangle, FileText, Box, Code, Languages, ExternalLink, Shield, Gamepad2, Palette, StickyNote } from 'lucide-react';
 import { getUnsatisfiedDeps, checkDepSatisfied, checkMinGameVersion } from '../utils/deps';
+import { useT } from '../i18n/I18nContext';
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -13,19 +14,20 @@ function isChinese(text) {
   return /[\u4e00-\u9fff]/.test(text);
 }
 
-function getModCategory(mod, allMods) {
+function getModCategory(mod, allMods, t) {
   const isDepForOthers = allMods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.some(d => d.id === mod.id));
-  if (isDepForOthers) return { label: '框架前置', color: 'bg-indigo-50 text-indigo-600', icon: Shield };
-  if (mod.affects_gameplay) return { label: '玩法改动', color: 'bg-amber-50 text-amber-700', icon: Gamepad2 };
-  return { label: '资源类', color: 'bg-teal-50 text-teal-600', icon: Palette };
+  if (isDepForOthers) return { label: t('modCard.catFramework'), color: 'bg-indigo-50 text-indigo-600', icon: Shield };
+  if (mod.affects_gameplay) return { label: t('modCard.catGameplay'), color: 'bg-amber-50 text-amber-700', icon: Gamepad2 };
+  return { label: t('modCard.catResource'), color: 'bg-teal-50 text-teal-600', icon: Palette };
 }
 
 export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall, onSelectMod, onTranslationSaved, gameVersion }) {
+  const { t } = useT();
   const missingDeps = getUnsatisfiedDeps(mod, allMods);
   const versionOk = checkMinGameVersion(mod, gameVersion);
   const versionIncompatible = versionOk === false;
   const dependents = allMods.filter(m => m.dependencies && m.dependencies.some(d => d.id === mod.id) && m.enabled);
-  const category = getModCategory(mod, allMods);
+  const category = getModCategory(mod, allMods, t);
   const CategoryIcon = category.icon;
 
   const [translatedDesc, setTranslatedDesc] = useState(null);
@@ -33,15 +35,14 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState(null);
 
-  // Load saved translations when mod changes
   useEffect(() => {
     setTranslateError(null);
     if (window.api.loadTranslations) {
       window.api.loadTranslations().then(saved => {
-        const t = saved[mod.id];
-        if (t) {
-          setTranslatedName(t.name || null);
-          setTranslatedDesc(t.desc || null);
+        const savedT = saved[mod.id];
+        if (savedT) {
+          setTranslatedName(savedT.name || null);
+          setTranslatedDesc(savedT.desc || null);
         } else {
           setTranslatedName(null);
           setTranslatedDesc(null);
@@ -70,7 +71,6 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
       if (results[0]?.success) { newDesc = results[0].translated; setTranslatedDesc(newDesc); }
       if (results[1]?.success) { newName = results[1].translated; setTranslatedName(newName); }
       if (results[0] && !results[0].success) setTranslateError(results[0].error);
-      // Persist
       if (window.api.saveTranslations && (newName || newDesc)) {
         const saved = await window.api.loadTranslations();
         saved[mod.id] = { name: newName, desc: newDesc };
@@ -87,7 +87,6 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
 
   return (
     <div className="w-80 bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden">
-      {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50 dark:border-gray-800">
         <div className="min-w-0 flex-1 mr-2">
           <h2 className="font-bold text-base truncate dark:text-gray-100">{translatedName || mod.name}</h2>
@@ -99,38 +98,35 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-        {/* Status */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500 dark:text-gray-400">状态</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">{t('modDetail.status')}</span>
           <button onClick={onToggle} className="flex items-center gap-2">
           {mod.enabled
-              ? <><span className="text-sm text-emerald-600 font-medium">已启用</span><ToggleRight size={24} className="text-emerald-500" /></>
-              : <><span className="text-sm text-gray-400 dark:text-gray-500 font-medium">已禁用</span><ToggleLeft size={24} className="text-gray-300 dark:text-gray-600" /></>
+              ? <><span className="text-sm text-emerald-600 font-medium">{t('modDetail.enabled')}</span><ToggleRight size={24} className="text-emerald-500" /></>
+              : <><span className="text-sm text-gray-400 dark:text-gray-500 font-medium">{t('modDetail.disabled')}</span><ToggleLeft size={24} className="text-gray-300 dark:text-gray-600" /></>
             }
           </button>
         </div>
 
-        {/* Category badge */}
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium ${category.color}`}>
             <CategoryIcon size={13} /> {category.label}
           </span>
           {missingDeps.length > 0 && mod.enabled && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 text-red-600">
-              <AlertTriangle size={13} /> 缺失依赖
+              <AlertTriangle size={13} /> {t('modDetail.missingDeps')}
             </span>
           )}
         </div>
 
-        {/* Info rows */}
         <div className="space-y-3">
           {[
-            ['ID', mod.id],
-            ['作者', mod.author || '未知'],
-            ['版本', mod.version || '未知'],
-            ['大小', formatSize(mod.size)],
-            ['类型', mod.isFolder ? '文件夹 MOD' : '独立文件 MOD'],
-            ...(mod.min_game_version ? [['所需游戏版本', `≥ v${mod.min_game_version}`]] : []),
+            [t('modDetail.id'), mod.id],
+            [t('modDetail.author'), mod.author || t('modDetail.unknown')],
+            [t('modDetail.version'), mod.version || t('modDetail.unknown')],
+            [t('modDetail.size'), formatSize(mod.size)],
+            [t('modDetail.type'), mod.isFolder ? t('modDetail.typeFolder') : t('modDetail.typeFile')],
+            ...(mod.min_game_version ? [[t('modDetail.requiredGameVersion'), `≥ v${mod.min_game_version}`]] : []),
           ].map(([label, value]) => (
             <div key={label} className="flex items-center justify-between">
               <span className="text-xs text-gray-400 dark:text-gray-500">{label}</span>
@@ -139,25 +135,23 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
           ))}
         </div>
 
-        {/* Version incompatibility warning */}
         {versionIncompatible && mod.enabled && (
           <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950 rounded-lg">
             <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
             <span className="text-xs text-amber-700 dark:text-amber-400">
-              此 MOD 需要游戏 v{mod.min_game_version} 以上版本，当前游戏版本为 {gameVersion}，可能无法正常工作
+              {t('modDetail.versionWarning', { required: mod.min_game_version, current: gameVersion })}
             </span>
           </div>
         )}
 
-        {/* Description */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <p className="text-xs text-gray-400 dark:text-gray-500">描述</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{t('modDetail.description')}</p>
             {hasEnglishContent && (
               <button onClick={handleTranslate} disabled={translating}
                 className="flex items-center gap-1 text-[11px] text-blue-500 hover:text-blue-700 disabled:text-gray-300 transition-colors">
                 <Languages size={12} />
-                {translating ? '翻译中...' : translatedDesc ? '重新翻译' : '翻译'}
+                {translating ? t('modDetail.translating') : translatedDesc ? t('modDetail.retranslate') : t('modDetail.translate')}
               </button>
             )}
           </div>
@@ -167,20 +161,18 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
               <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5 leading-relaxed">{mod.description}</p>
             </>
           ) : (
-            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{mod.description || '暂无描述'}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{mod.description || t('modDetail.noDescription')}</p>
           )}
           {translateError && (
-            <p className="mt-1 text-xs text-red-400">翻译失败: {translateError}</p>
+            <p className="mt-1 text-xs text-red-400">{t('modDetail.translateFailed', { error: translateError })}</p>
           )}
         </div>
 
-        {/* Mod Notes */}
-        <ModNotesEditor modId={mod.id} />
+        <ModNotesEditor modId={mod.id} t={t} />
 
-        {/* Dependencies */}
         {mod.dependencies && mod.dependencies.length > 0 && (
           <div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">依赖项</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">{t('modDetail.dependencies')}</p>
             {mod.dependencies.map(dep => {
               const result = checkDepSatisfied(dep, allMods);
               const isMissing = !result.satisfied;
@@ -195,9 +187,9 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
                   {isMissing ? <AlertTriangle size={14} /> : <Box size={14} />}
                   <span className="flex-1 truncate">{depMod ? depMod.name : dep.id}</span>
                   {dep.min_version && <span className="text-[10px] opacity-60">≥ {dep.min_version}</span>}
-                  {isMissing && !depMod && <span className="text-[10px] ml-auto">未安装</span>}
-                  {isMissing && depMod && result.reason === 'disabled' && <span className="text-[10px] ml-auto">未启用</span>}
-                  {isMissing && depMod && result.reason === 'version_mismatch' && <span className="text-[10px] ml-auto text-amber-600">版本过低 ({depMod.version} {'<'}{dep.min_version})</span>}
+                  {isMissing && !depMod && <span className="text-[10px] ml-auto">{t('modDetail.notInstalled')}</span>}
+                  {isMissing && depMod && result.reason === 'disabled' && <span className="text-[10px] ml-auto">{t('modDetail.notEnabled')}</span>}
+                  {isMissing && depMod && result.reason === 'version_mismatch' && <span className="text-[10px] ml-auto text-amber-600">{t('modDetail.versionLow', { current: depMod.version, required: dep.min_version })}</span>}
                   {canJump && <ExternalLink size={12} className="flex-shrink-0 opacity-50" />}
                 </div>
               );
@@ -205,19 +197,17 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
           </div>
         )}
 
-        {/* Dependents warning */}
         {dependents.length > 0 && (
           <div className="bg-amber-50 dark:bg-amber-950 rounded-lg p-3">
-            <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mb-1">⚠ 以下 MOD 依赖此 MOD</p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mb-1">{t('modDetail.dependentWarning')}</p>
             {dependents.map(d => (
               <p key={d.id} className="text-xs text-amber-600 dark:text-amber-500">{d.name}</p>
             ))}
           </div>
         )}
 
-        {/* Files */}
         <div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">文件列表</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">{t('modDetail.fileList')}</p>
             <div className="space-y-1">
               {(mod.files || []).map(f => (
                 <div key={f} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 py-1">
@@ -231,7 +221,6 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
         </div>
       </div>
 
-      {/* Footer actions */}
       <div className="p-4 border-t border-gray-50 dark:border-gray-800 space-y-2">
         <button onClick={onToggle}
           className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -239,24 +228,23 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
               ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               : 'bg-gray-900 text-white hover:bg-gray-800'
           }`}>
-          {mod.enabled ? '禁用 MOD' : '启用 MOD'}
+          {mod.enabled ? t('modDetail.disableMod') : t('modDetail.enableMod')}
         </button>
         <button onClick={onUninstall}
           className="w-full py-2 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900 transition-colors flex items-center justify-center gap-2">
-          <Trash2 size={14} /> 卸载 MOD
+          <Trash2 size={14} /> {t('modDetail.uninstallMod')}
         </button>
       </div>
     </div>
   );
 }
 
-function ModNotesEditor({ modId }) {
+function ModNotesEditor({ modId, t }) {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [hasNote, setHasNote] = useState(false);
   const saveTimerRef = useRef(null);
 
-  // Load notes when mod changes
   useEffect(() => {
     if (window.api.loadModNotes) {
       window.api.loadModNotes().then(allNotes => {
@@ -278,7 +266,6 @@ function ModNotesEditor({ modId }) {
   const handleChange = (e) => {
     const value = e.target.value;
     setNotes(value);
-    // Auto-save with debounce
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       saveNotes(value);
@@ -309,8 +296,8 @@ function ModNotesEditor({ modId }) {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1">
           <StickyNote size={13} className="text-gray-400" />
-          <p className="text-xs text-gray-400 dark:text-gray-500">备注</p>
-          {saving && <span className="text-[10px] text-gray-300">保存中...</span>}
+          <p className="text-xs text-gray-400 dark:text-gray-500">{t('modDetail.modNotes')}</p>
+          {saving && <span className="text-[10px] text-gray-300">{t('modDetail.notesSaving')}</span>}
         </div>
         {notes && (
           <button onClick={() => {
@@ -319,14 +306,14 @@ function ModNotesEditor({ modId }) {
               saveNotes('');
             }}
             className="text-[11px] text-gray-400 hover:text-red-500 transition-colors">
-            清除
+            {t('modDetail.notesClear')}
           </button>
         )}
       </div>
       <textarea
         value={notes}
         onChange={handleChange}
-        placeholder="添加备注..."
+        placeholder={t('modDetail.notesPlaceholder')}
         rows={3}
             className={`w-full text-xs border rounded-lg p-2 resize-none transition-colors focus:outline-none focus:ring-1 ${
               hasNote

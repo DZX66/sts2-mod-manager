@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight } from 'lucide-react';
+import { useT } from '../i18n/I18nContext';
 
 export default function SettingsPage() {
+  const { t, locale, changeLocale } = useT();
   const [theme, setTheme] = useState(() => localStorage.getItem('sts2-theme') || 'system');
-  const [locale, setLocale] = useState(() => localStorage.getItem('sts2-locale') || 'zh-CN');
   const [gamePath, setGamePath] = useState(null);
   const [appVersion, setAppVersion] = useState('');
 
@@ -29,8 +30,7 @@ export default function SettingsPage() {
   };
 
   const handleLocaleChange = (newLocale) => {
-    setLocale(newLocale);
-    localStorage.setItem('sts2-locale', newLocale);
+    changeLocale(newLocale);
   };
 
   const handleSelectGamePath = async () => {
@@ -39,14 +39,14 @@ export default function SettingsPage() {
   };
 
   const themeOptions = [
-    { id: 'light', icon: Sun, label: '浅色' },
-    { id: 'dark', icon: Moon, label: '深色' },
-    { id: 'system', icon: Monitor, label: '跟随系统' },
+    { id: 'light', icon: Sun, label: t('settings.themeLight') },
+    { id: 'dark', icon: Moon, label: t('settings.themeDark') },
+    { id: 'system', icon: Monitor, label: t('settings.themeSystem') },
   ];
 
   const localeOptions = [
-    { id: 'zh-CN', label: '简体中文' },
-    { id: 'en', label: 'English' },
+    { id: 'zh-CN', label: t('settings.localeZhCN') },
+    { id: 'en', label: t('settings.localeEn') },
   ];
 
   return (
@@ -57,8 +57,8 @@ export default function SettingsPage() {
             <Settings size={20} />
           </div>
           <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">设置</h1>
-            <p className="text-sm text-gray-400 dark:text-gray-500">自定义应用外观与偏好</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('settings.title')}</h1>
+            <p className="text-sm text-gray-400 dark:text-gray-500">{t('settings.subtitle')}</p>
           </div>
         </div>
 
@@ -71,8 +71,8 @@ export default function SettingsPage() {
                <Monitor size={18} className="text-gray-600" />}
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">外观主题</h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500">选择你偏好的显示主题</p>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.appearance')}</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t('settings.appearanceDesc')}</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -98,8 +98,8 @@ export default function SettingsPage() {
               <Globe size={18} className="text-gray-600" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">语言</h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500">界面显示语言（部分内容需重启生效）</p>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.language')}</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t('settings.languageDesc')}</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -124,17 +124,17 @@ export default function SettingsPage() {
               <Gamepad2 size={18} className="text-gray-600" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">游戏路径</h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Slay the Spire 2 的安装目录</p>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.gamePath')}</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t('settings.gamePathDesc')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2.5 text-sm text-gray-500 dark:text-gray-400 truncate border border-gray-100 dark:border-gray-700">
-              {gamePath || '未设置'}
+              {gamePath || t('settings.notSet')}
             </div>
             <button onClick={handleSelectGamePath}
               className="px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors whitespace-nowrap">
-              更改
+              {t('settings.change')}
             </button>
           </div>
         </div>
@@ -146,20 +146,20 @@ export default function SettingsPage() {
               <Info size={18} className="text-gray-600" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">关于</h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500">应用信息和相关链接</p>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.about')}</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t('settings.aboutDesc')}</p>
             </div>
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <span className="text-sm text-gray-500 dark:text-gray-400">应用版本</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{t('settings.appVersion')}</span>
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">v{appVersion}</span>
             </div>
             <button onClick={() => window.api.openUrl && window.api.openUrl('https://github.com/ImogeneOctaviap794/sts2-mod-manager')}
               className="w-full flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
               <div className="flex items-center gap-2">
                 <Github size={16} className="text-gray-400" />
-                <span className="text-sm text-gray-500 dark:text-gray-400">GitHub</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{t('settings.github')}</span>
               </div>
               <ExternalLink size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
             </button>

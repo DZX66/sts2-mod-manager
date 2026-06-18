@@ -13,8 +13,10 @@ import {
   ArrowUpDown, CheckCircle2, Circle, Rocket,
 } from 'lucide-react';
 import { getUnsatisfiedDeps } from './utils/deps';
+import { useT } from './i18n/I18nContext';
 
 export default function App() {
+  const { t } = useT();
   const [page, setPage] = useState('mods');
   const [mods, setMods] = useState([]);
   const [selectedMod, setSelectedMod] = useState(null);
@@ -87,7 +89,6 @@ export default function App() {
         const list = await window.api.scanMods();
         syncMods(list);
       }
-      // 在 init() 之后获取游戏版本
       const v = await window.api.getGameVersion();
       if (v.version) setGameVersion(v.version);
     })();
@@ -101,7 +102,7 @@ export default function App() {
   const handleToggle = async (mod) => {
     const result = await window.api.toggleMod(mod);
     if (result.success) {
-      showToast(`${mod.name} ${mod.enabled ? '已禁用' : '已启用'}`);
+      showToast(mod.enabled ? t('mods.disabled', { name: mod.name }) : t('mods.enabled', { name: mod.name }));
       if (result.mods) syncMods(result.mods); else refreshMods();
     } else showToast(result.error, 'error');
   };
@@ -109,7 +110,7 @@ export default function App() {
   const doUninstall = async (mod) => {
     const result = await window.api.uninstallMod(mod);
     if (result.success) {
-      showToast(`${mod.name} 已卸载`);
+      showToast(t('mods.uninstalled', { name: mod.name }));
       if (result.mods) syncMods(result.mods); else refreshMods();
     } else showToast(result.error, 'error');
   };
@@ -117,10 +118,10 @@ export default function App() {
   const handleUninstall = (mod) => {
     const dependents = mods.filter(m => m.dependencies && m.dependencies.some(d => d.id === mod.id) && m.enabled);
     setConfirmDialog({
-      title: `卸载 ${mod.name}`,
+      title: t('mods.confirmUninstallTitle', { name: mod.name }),
       message: dependents.length > 0
-        ? `此 MOD 被 ${dependents.map(d => d.name).join('、')} 依赖，卸载后这些 MOD 可能无法正常工作。确定继续？`
-        : `确定要卸载 "${mod.name}" 吗？卸载后文件将被删除。`,
+        ? t('mods.confirmUninstallMessage', { deps: dependents.map(d => d.name).join(', ') })
+        : t('mods.confirmUninstallMessageSimple', { name: mod.name }),
       danger: true,
       onConfirm: () => { setConfirmDialog(null); doUninstall(mod); },
     });
@@ -129,34 +130,33 @@ export default function App() {
   const handleInstall = async () => {
     const result = await window.api.installMod();
     if (result.success) {
-      showToast(`已安装: ${result.installed.join(', ')}`);
+      showToast(t('mods.installed', { names: result.installed.join(', ') }));
       if (result.mods) syncMods(result.mods); else refreshMods();
     } else if (result.error !== 'Cancelled') showToast(result.error, 'error');
   };
 
   const handleBackup = async () => {
     const result = await window.api.backupMods();
-    if (result.success) showToast('备份完成');
+    if (result.success) showToast(t('mods.backupDone'));
     else if (result.error) showToast(result.error, 'error');
   };
 
   const handleRestore = () => {
     setConfirmDialog({
-      title: '还原 MOD 备份',
-      message: '还原会用备份文件覆盖当前 mods 文件夹，现有 MOD 可能被替换。确定继续？',
+      title: t('mods.confirmRestoreTitle'),
+      message: t('mods.confirmRestoreMessage'),
       danger: true,
       onConfirm: async () => {
         setConfirmDialog(null);
         const result = await window.api.restoreMods();
         if (result.success) {
-          showToast('还原完成');
+          showToast(t('mods.restoreDone'));
           if (result.mods) syncMods(result.mods); else refreshMods();
         } else if (result.error) showToast(result.error, 'error');
       },
     });
   };
 
-  // Multi-select batch operations
   const handleBatchToggle = async (enable) => {
     const targets = mods.filter(m => selectedIds.has(m.instanceKey) && m.enabled !== enable);
     for (const mod of targets) {
@@ -164,15 +164,15 @@ export default function App() {
     }
     setSelectedIds(new Set());
     refreshMods();
-    showToast(`已批量${enable ? '启用' : '禁用'} ${targets.length} 个 MOD`);
+    showToast(enable ? t('mods.batchEnabled', { count: targets.length }) : t('mods.batchDisabled', { count: targets.length }));
   };
 
   const handleBatchUninstall = () => {
     const targets = mods.filter(m => selectedIds.has(m.instanceKey));
     if (targets.length === 0) return;
     setConfirmDialog({
-      title: `批量卸载 ${targets.length} 个 MOD`,
-      message: `即将卸载：${targets.map(m => m.name).join('、')}。卸载后文件将被永久删除，确定继续？`,
+      title: t('mods.confirmUninstallTitle', { name: `${targets.length} MOD(s)` }),
+      message: targets.map(m => m.name).join(', '),
       danger: true,
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -180,7 +180,7 @@ export default function App() {
         setSelectedIds(new Set());
         setSelectedMod(null);
         refreshMods();
-        showToast(`已批量卸载 ${targets.length} 个 MOD`);
+        showToast(t('mods.batchUninstalled', { count: targets.length }));
       },
     });
   };
@@ -193,13 +193,11 @@ export default function App() {
     }
   };
 
-  // Profile operations
   const handleSaveProfile = async () => {
     const name = newProfileName.trim();
     if (!name) return;
     const snapshot = {};
     mods.forEach(m => {
-      // Only store enabled mods; disabled mods are implied as "off"
       if (m.enabled) {
         snapshot[m.id] = { version: m.version || null, enabled: true };
       }
@@ -208,38 +206,32 @@ export default function App() {
     await window.api.saveProfiles(updated);
     setProfiles(updated);
     setNewProfileName('');
-    showToast(`配置 "${name}" 已保存`);
+    showToast(t('mods.profileSaved', { name }));
   };
 
   const getProfileEntry = (entry) => {
-    // Support both old format (boolean) and new format ({ version, enabled })
     if (typeof entry === 'boolean') return { version: null, enabled: entry };
     return { version: entry?.version || null, enabled: entry?.enabled ?? false };
   };
 
-  // Apply a profile: enable matching-version mods in snapshot, disable everything else
   const applyProfileState = async (profile) => {
     for (const mod of mods) {
       const entry = profile.snapshot[mod.id];
       if (entry !== undefined) {
         const info = getProfileEntry(entry);
         if (info.version) {
-          // Version specified: only enable the instance matching both id and version
           const isTargetVersion = mod.version === info.version;
           if (isTargetVersion && !mod.enabled) {
             await window.api.toggleMod(mod);
           } else if (!isTargetVersion && mod.enabled) {
-            // Wrong version is currently enabled, disable it
             await window.api.toggleMod(mod);
           }
         } else {
-          // No version specified: match by id (legacy behavior)
           if (info.enabled !== mod.enabled) {
             await window.api.toggleMod(mod);
           }
         }
       } else {
-        // Mod is NOT in snapshot (was disabled when saved): disable it
         if (mod.enabled) {
           await window.api.toggleMod(mod);
         }
@@ -251,43 +243,36 @@ export default function App() {
     const profile = profiles[name];
     if (!profile) return;
 
-    // Detect missing mods: mods id in snapshot that has NO instance at all in current mods list
     const missingModIds = Object.keys(profile.snapshot).filter(id => {
       return !mods.some(m => m.id === id);
     });
 
-    // Detect version mismatches: mods with version in snapshot that have NO instance matching both id AND version
-    // (if an exact id+version match exists, it's not a mismatch)
     const versionMismatches = Object.keys(profile.snapshot).filter(id => {
       const entry = profile.snapshot[id];
       const info = getProfileEntry(entry);
-      if (!info.version) return false; // no version recorded, skip
-      // Skip if already marked as missing
+      if (!info.version) return false;
       if (missingModIds.includes(id)) return false;
-      // Check if ANY mod instance matches both id AND the specified version
       return !mods.some(m => m.id === id && m.version === info.version);
     }).map(id => {
       const entry = profile.snapshot[id];
       const info = getProfileEntry(entry);
       const availableVersions = [...new Set(
-        mods.filter(m => m.id === id).map(m => m.version || '未知')
+        mods.filter(m => m.id === id).map(m => m.version || t('common.unknown'))
       )];
       return { id, savedVersion: info.version, availableVersions };
     });
 
-    // Calculate total changes for confirmation message
     const changes = mods.filter(m => {
       const entry = profile.snapshot[m.id];
       if (entry !== undefined) {
         const info = getProfileEntry(entry);
         if (info.version) {
-          // Version specified: change if this is the target version but disabled, or wrong version but enabled
           if (m.version === info.version) return !m.enabled;
-          return m.enabled; // wrong version that's enabled → needs disabling
+          return m.enabled;
         }
         return info.enabled !== m.enabled;
       }
-      return m.enabled; // mod not in snapshot but currently enabled → needs disabling
+      return m.enabled;
     });
 
     if (missingModIds.length > 0 || versionMismatches.length > 0) {
@@ -305,46 +290,43 @@ export default function App() {
           await applyProfileState(profile);
           refreshMods();
           setShowProfiles(false);
-          showToast(`已应用配置 "${name}"（已忽略 ${missingModIds.length} 个缺失 MOD${versionMismatches.length > 0 ? `、${versionMismatches.length} 个版本不匹配` : ''}）`);
+          showToast(t('mods.profileAppliedWithIssues', { name, missing: missingModIds.length, mismatch: versionMismatches.length > 0 ? ` + ${versionMismatches.length} ${t('missingModsDialog.versionMismatches')}` : '' }));
         },
         onUpdate: async () => {
           setMissingModsDialog(null);
-          // Remove missing mods from snapshot and save
           const updatedSnapshot = { ...profile.snapshot };
           missingModIds.forEach(id => delete updatedSnapshot[id]);
-          // For version mismatches, update to the first available version
           versionMismatches.forEach(m => {
             if (m.availableVersions && m.availableVersions.length > 0) {
               const firstAvail = m.availableVersions[0];
-              updatedSnapshot[m.id] = { ...updatedSnapshot[m.id], version: firstAvail !== '未知' ? firstAvail : null };
+              updatedSnapshot[m.id] = { ...updatedSnapshot[m.id], version: firstAvail !== t('common.unknown') ? firstAvail : null };
             }
           });
           const updatedProfile = { ...profile, snapshot: updatedSnapshot, savedAt: new Date().toISOString() };
           const updated = { ...profiles, [name]: updatedProfile };
           await window.api.saveProfiles(updated);
           setProfiles(updated);
-          // Apply the updated profile immediately
           await applyProfileState(updatedProfile);
           refreshMods();
           setShowProfiles(false);
-          showToast(`配置 "${name}" 已更新并应用（移除了 ${missingModIds.length} 个缺失 MOD，更新了 ${versionMismatches.length} 个 MOD 版本）`);
+          showToast(t('mods.profileUpdatedAndApplied', { name, missing: missingModIds.length, mismatch: versionMismatches.length }));
         },
       });
       return;
     }
 
     setConfirmDialog({
-      title: `应用配置「${name}」`,
+      title: t('mods.confirmApplyProfile', { name }),
       message: changes.length > 0
-        ? `将改变 ${changes.length} 个 MOD 的启用状态，当前游戏环境会被覆盖。确定应用？`
-        : '当前 MOD 状态与该配置一致，无需改变。',
+        ? t('mods.confirmApplyProfileChanges', { count: changes.length })
+        : t('mods.confirmApplyProfileNoChanges'),
       danger: false,
       onConfirm: async () => {
         setConfirmDialog(null);
         await applyProfileState(profile);
         refreshMods();
         setShowProfiles(false);
-        showToast(`已应用配置 "${name}"`);
+        showToast(t('mods.profileApplied', { name }));
       },
     });
   };
@@ -354,7 +336,7 @@ export default function App() {
     delete updated[name];
     await window.api.saveProfiles(updated);
     setProfiles(updated);
-    showToast(`已删除配置 "${name}"`);
+    showToast(t('mods.profileDeleted', { name }));
   };
 
   const handleDrop = async (e) => {
@@ -364,12 +346,12 @@ export default function App() {
       .filter(f => f.name.endsWith('.zip') || !f.name.includes('.') || f.type === '')
       .map(f => f.path);
     if (paths.length === 0) {
-      showToast('请拖入 .zip 压缩包或 MOD 文件夹', 'error');
+      showToast(t('mods.dragZipError'), 'error');
       return;
     }
     const result = await window.api.installDrop(paths);
     if (result.success) {
-      showToast(`已安装: ${result.installed.join(', ')}`);
+      showToast(t('mods.installed', { names: result.installed.join(', ') }));
       if (result.mods) syncMods(result.mods); else refreshMods();
     } else showToast(result.error, 'error');
   };
@@ -439,29 +421,27 @@ export default function App() {
         >
           {page === 'mods' && (
             <>
-              {/* Shared header for both views */}
               <div className="px-8 pt-6 pb-4">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h1 className="text-2xl font-bold">MOD 管理</h1>
+                    <h1 className="text-2xl font-bold">{t('mods.title')}</h1>
                     <p className="text-sm text-gray-500 mt-1">
-                      共 {mods.length} 个 MOD · {enabledCount} 已启用 · {disabledCount} 已禁用
+                      {t('mods.summary', { total: mods.length, enabled: enabledCount, disabled: disabledCount })}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={handleInstall}
                       className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
-                      <Download size={16} /> 安装 MOD
+                      <Download size={16} /> {t('mods.installMod')}
                     </button>
                     <button onClick={refreshMods}
                       className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                      <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 刷新
+                      <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> {t('mods.refresh')}
                     </button>
-                    {/* Profiles dropdown */}
                     <div className="relative">
                       <button onClick={() => setShowProfiles(!showProfiles)}
                         className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                        <Layers size={16} /> 档案 <ChevronDown size={12} />
+                        <Layers size={16} /> {t('mods.profile')} <ChevronDown size={12} />
                       </button>
                       {showProfiles && (
                         <div className="absolute right-0 top-full mt-1 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden">
@@ -469,30 +449,30 @@ export default function App() {
                             <div className="flex gap-1.5">
                               <input type="text" value={newProfileName} onChange={e => setNewProfileName(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleSaveProfile()}
-                                placeholder="输入配置名称..."
+                                placeholder={t('mods.profileInputPlaceholder')}
                                 className="flex-1 px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-gray-300 dark:bg-gray-700 dark:text-gray-100" />
                               <button onClick={handleSaveProfile}
                                 className="px-2.5 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800">
                                 <Save size={12} />
                               </button>
                             </div>
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">当前 {enabledCount} 个 MOD 已启用</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">{t('mods.profileCurrentEnabled', { count: enabledCount })}</p>
                           </div>
                           <div className="max-h-48 overflow-y-auto">
                             {Object.keys(profiles).length === 0 ? (
-                              <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-4">暂无配置</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-4">{t('mods.profileNoProfiles')}</p>
                             ) : Object.entries(profiles).map(([name, profile]) => (
                               <div key={name} className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 group">
                                 <div className="min-w-0 flex-1">
                                   <p className="text-xs font-medium truncate dark:text-gray-100">{name}</p>
                                   <p className="text-[10px] text-gray-400 dark:text-gray-500">
-                                    {Object.values(profile.snapshot).filter(v => typeof v === 'boolean' ? v : v?.enabled).length} 个 MOD
+                                    {t('mods.profileModsCount', { count: Object.values(profile.snapshot).filter(v => typeof v === 'boolean' ? v : v?.enabled).length })}
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <button onClick={() => handleApplyProfile(name)}
                                     className="px-2 py-1 text-[10px] font-medium bg-gray-900 text-white rounded-md hover:bg-gray-800">
-                                    应用
+                                    {t('mods.profileApply')}
                                   </button>
                                   <button onClick={() => handleDeleteProfile(name)}
                                     className="p-1 text-gray-300 hover:text-red-500 transition-colors">
@@ -514,23 +494,22 @@ export default function App() {
                             ? 'bg-amber-500 text-white cursor-wait'
                             : 'bg-blue-500 text-white cursor-default'
                       }`}>
-                      {gameState === 'idle' && <><Play size={14} /> 启动游戏</>}
-                      {gameState === 'launching' && <><Loader size={14} className="animate-spin" /> 正在启动...</>}
-                      {gameState === 'running' && <><span className="w-2 h-2 rounded-full bg-white animate-pulse" /> 游戏运行中</>}
+                      {gameState === 'idle' && <><Play size={14} /> {t('mods.launchGame')}</>}
+                      {gameState === 'launching' && <><Loader size={14} className="animate-spin" /> {t('mods.launching')}</>}
+                      {gameState === 'running' && <><span className="w-2 h-2 rounded-full bg-white animate-pulse" /> {t('mods.gameRunning')}</>}
                     </button>
                   </div>
                 </div>
 
-                {/* Search & filter & view toggle */}
                 <div className="flex items-center gap-3">
                   <div className="relative flex-1 max-w-md">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-                      placeholder="搜索 MOD 名称、作者..."
+                      placeholder={t('mods.searchPlaceholder')}
                       className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
                   <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
-                    {[['all', '全部'], ['enabled', '已启用'], ['disabled', '已禁用']].map(([key, label]) => (
+                    {[['all', t('mods.filterAll')], ['enabled', t('mods.filterEnabled')], ['disabled', t('mods.filterDisabled')]].map(([key, label]) => (
                       <button key={key} onClick={() => setFilter(key)}
                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                           filter === key ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
@@ -539,17 +518,16 @@ export default function App() {
                       </button>
                     ))}
                   </div>
-                  {/* Sort dropdown */}
                   <div className="relative">
                     <button onClick={() => setShowSortMenu(!showSortMenu)}
                       className="flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                       <ArrowUpDown size={13} className="text-gray-400 dark:text-gray-500" />
-                      {{ name: '名称', depIssues: '依赖问题', gameplay: '影响玩法', category: '分类', size: '大小' }[sortBy]}
+                      {{ name: t('mods.name'), depIssues: t('mods.depIssues'), gameplay: t('mods.gameplay'), category: t('mods.category'), size: t('mods.size') }[sortBy]}
                       <ChevronDown size={11} className="text-gray-400" />
                     </button>
                     {showSortMenu && (
                       <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden py-1">
-                        {[['name', '按名称'], ['depIssues', '依赖问题优先'], ['gameplay', '影响玩法优先'], ['category', '按分类'], ['size', '按大小']].map(([key, label]) => (
+                        {[['name', t('mods.sortName')], ['depIssues', t('mods.sortDepIssues')], ['gameplay', t('mods.sortGameplay')], ['category', t('mods.sortCategory')], ['size', t('mods.sortSize')]].map(([key, label]) => (
                           <button key={key}
                             onClick={() => { setSortBy(key); setShowSortMenu(false); }}
                             className={`w-full text-left px-3 py-2 text-xs transition-colors ${
@@ -561,23 +539,21 @@ export default function App() {
                       </div>
                     )}
                   </div>
-                  {/* View toggle */}
                   <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
                     <button onClick={() => setViewMode('grid')}
                       className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
-                      title="卡片视图">
+                      title={t('mods.cardView')}>
                       <LayoutGrid size={16} />
                     </button>
                     <button onClick={() => setViewMode('list')}
                       className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
-                      title="列表视图">
+                      title={t('mods.listView')}>
                       <List size={16} />
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Quick actions + batch bar */}
               <div className="px-8 pb-3 flex items-center gap-2">
                 {viewMode === 'list' && (
                   <input type="checkbox"
@@ -587,35 +563,35 @@ export default function App() {
                 )}
                 <button onClick={() => window.api.openModsDir()}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
-                  <FolderOpen size={14} /> MOD 文件夹
+                  <FolderOpen size={14} /> {t('mods.modsFolder')}
                 </button>
                 <button onClick={() => window.api.openGameDir()}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
-                  <FolderOpen size={14} /> 游戏目录
+                  <FolderOpen size={14} /> {t('mods.gameDir')}
                 </button>
                 <button onClick={handleBackup}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
-                  <Archive size={14} /> 备份
+                  <Archive size={14} /> {t('mods.backup')}
                 </button>
                 <button onClick={handleRestore}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
-                  <UploadCloud size={14} /> 还原
+                  <UploadCloud size={14} /> {t('mods.restore')}
                 </button>
                 {selectedIds.size > 0 && (
                   <>
                     <div className="w-px h-5 bg-gray-200 mx-1" />
-                    <span className="text-xs font-medium text-blue-600">已选 {selectedIds.size} 个</span>
+                    <span className="text-xs font-medium text-blue-600">{t('mods.selected', { count: selectedIds.size })}</span>
                     <button onClick={() => handleBatchToggle(true)}
                       className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 rounded-md hover:bg-emerald-100">
-                      <ToggleRight size={12} /> 启用
+                      <ToggleRight size={12} /> {t('mods.batchEnable')}
                     </button>
                     <button onClick={() => handleBatchToggle(false)}
                       className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200">
-                      <ToggleLeft size={12} /> 禁用
+                      <ToggleLeft size={12} /> {t('mods.batchDisable')}
                     </button>
                     <button onClick={handleBatchUninstall}
                       className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100">
-                      <Trash2 size={12} /> 卸载
+                      <Trash2 size={12} /> {t('mods.batchUninstall')}
                     </button>
                     <button onClick={() => setSelectedIds(new Set())}
                       className="p-1 text-gray-400 hover:text-gray-600">
@@ -625,75 +601,73 @@ export default function App() {
                 )}
               </div>
 
-              {/* Content area */}
               {viewMode === 'grid' ? (
-                /* ===== GRID VIEW (default, original card layout) ===== */
                 <div className="flex flex-1 overflow-hidden">
                   <div className="flex-1 overflow-y-auto px-8 pb-6">
-                    {!gamePath ? (
+                    {!gamePath && mods.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full">
-                        <h2 className="text-xl font-bold text-gray-800 mb-2">欢迎使用 STS2 Mod Manager</h2>
-                        <p className="text-sm text-gray-400 mb-8">按以下步骤开始管理你的 MOD</p>
+                        <h2 className="text-xl font-bold text-gray-800 mb-2">{t('mods.noGamePathTitle')}</h2>
+                        <p className="text-sm text-gray-400 mb-8">{t('mods.noGamePathDesc')}</p>
                         <div className="flex gap-5 max-w-2xl">
                           <div onClick={handleSelectGamePath}
                             className="flex-1 bg-white rounded-xl border-2 border-dashed border-gray-200 p-6 text-center cursor-pointer hover:border-gray-900 hover:shadow-lg transition-all group">
                             <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                               <FolderOpen size={22} />
                             </div>
-                            <p className="font-semibold text-gray-800 mb-1">1. 选择游戏目录</p>
-                            <p className="text-xs text-gray-400">定位你的 Slay the Spire 2 安装位置</p>
+                            <p className="font-semibold text-gray-800 mb-1">{t('mods.noGamePathStep1')}</p>
+                            <p className="text-xs text-gray-400">{t('mods.noGamePathStep1Desc')}</p>
                           </div>
                           <div className="flex-1 bg-white rounded-xl border border-gray-100 p-6 text-center opacity-50">
                             <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
                               <Download size={22} />
                             </div>
-                            <p className="font-semibold text-gray-500 mb-1">2. 安装第一个 MOD</p>
-                            <p className="text-xs text-gray-400">拖入 ZIP 文件或点击安装按钮</p>
+                            <p className="font-semibold text-gray-500 mb-1">{t('mods.noGamePathStep2')}</p>
+                            <p className="text-xs text-gray-400">{t('mods.noGamePathStep2Desc')}</p>
                           </div>
                           <div className="flex-1 bg-white rounded-xl border border-gray-100 p-6 text-center opacity-50">
                             <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
                               <Rocket size={22} />
                             </div>
-                            <p className="font-semibold text-gray-500 mb-1">3. 启动并验证</p>
-                            <p className="text-xs text-gray-400">启动游戏确认 MOD 正常加载</p>
+                            <p className="font-semibold text-gray-500 mb-1">{t('mods.noGamePathStep3')}</p>
+                            <p className="text-xs text-gray-400">{t('mods.noGamePathStep3Desc')}</p>
                           </div>
                         </div>
-                        <p className="text-xs text-gray-300 mt-6">遇到问题？查看侧边栏「游戏日志」获取崩溃分析</p>
+                        <p className="text-xs text-gray-300 mt-6">{t('mods.noGamePathHelp')}</p>
                       </div>
                     ) : gamePath && mods.length === 0 && !search ? (
                       <div className="flex flex-col items-center justify-center h-full">
-                        <h2 className="text-xl font-bold text-gray-800 mb-2">游戏已识别</h2>
-                        <p className="text-sm text-gray-400 mb-8">接下来安装你的第一个 MOD</p>
+                        <h2 className="text-xl font-bold text-gray-800 mb-2">{t('mods.gameReadyTitle')}</h2>
+                        <p className="text-sm text-gray-400 mb-8">{t('mods.gameReadyDesc')}</p>
                         <div className="flex gap-5 max-w-2xl">
                           <div className="flex-1 bg-white rounded-xl border border-gray-100 p-6 text-center opacity-50">
                             <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
                               <CheckCircle2 size={22} />
                             </div>
-                            <p className="font-semibold text-gray-500 mb-1">1. 游戏目录 ✓</p>
-                            <p className="text-xs text-gray-400">已完成</p>
+                            <p className="font-semibold text-gray-500 mb-1">{t('mods.gameReadyStep1')}</p>
+                            <p className="text-xs text-gray-400">{t('mods.gameReadyStep1Done')}</p>
                           </div>
                           <div onClick={handleInstall}
                             className="flex-1 bg-white rounded-xl border-2 border-dashed border-gray-200 p-6 text-center cursor-pointer hover:border-gray-900 hover:shadow-lg transition-all group">
                             <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                               <Download size={22} />
                             </div>
-                            <p className="font-semibold text-gray-800 mb-1">2. 安装第一个 MOD</p>
-                            <p className="text-xs text-gray-400">拖入 ZIP 文件或点击此处选择</p>
+                            <p className="font-semibold text-gray-800 mb-1">{t('mods.gameReadyStep2')}</p>
+                            <p className="text-xs text-gray-400">{t('mods.gameReadyStep2Desc')}</p>
                           </div>
                           <div className="flex-1 bg-white rounded-xl border border-gray-100 p-6 text-center opacity-50">
                             <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
                               <Rocket size={22} />
                             </div>
-                            <p className="font-semibold text-gray-500 mb-1">3. 启动并验证</p>
-                            <p className="text-xs text-gray-400">启动游戏确认 MOD 正常加载</p>
+                            <p className="font-semibold text-gray-500 mb-1">{t('mods.gameReadyStep3')}</p>
+                            <p className="text-xs text-gray-400">{t('mods.gameReadyStep3Desc')}</p>
                           </div>
                         </div>
-                        <p className="text-xs text-gray-300 mt-6">支持 .zip 格式，也可以直接拖放到窗口任意位置</p>
+                        <p className="text-xs text-gray-300 mt-6">{t('mods.gameReadyHelp')}</p>
                       </div>
                     ) : filteredMods.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                        <p className="text-lg font-medium">{search ? '没有找到匹配的 MOD' : '暂无 MOD'}</p>
-                        <p className="text-sm mt-1">拖拽 ZIP 文件到此处安装</p>
+                        <p className="text-lg font-medium">{search ? t('mods.noMatch') : t('mods.noMods')}</p>
+                        <p className="text-sm mt-1">{t('mods.dragToInstall')}</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -712,7 +686,6 @@ export default function App() {
                       </div>
                     )}
                   </div>
-                  {/* Detail panel (slide-in) */}
                   {selectedMod && (
                     <ModDetail
                       gameVersion={gameVersion}
@@ -727,20 +700,19 @@ export default function App() {
                   )}
                 </div>
               ) : (
-                /* ===== LIST VIEW (dual-pane with multi-select) ===== */
                 <div className="flex flex-1 overflow-hidden">
                   <div className="flex-1 overflow-y-auto border-t border-gray-100">
-                    {!gamePath ? (
+                    {!gamePath && mods.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-gray-400">
                         <FolderOpen size={40} className="mb-3" />
-                        <p className="text-sm font-medium mb-2">未检测到游戏路径</p>
+                        <p className="text-sm font-medium mb-2">{t('mods.noGamePathTitle')}</p>
                         <button onClick={handleSelectGamePath}
-                          className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs">选择游戏目录</button>
+                          className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs">{t('nav.clickSelectGamePath')}</button>
                       </div>
                     ) : filteredMods.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                        <p className="text-sm font-medium">{search ? '没有找到匹配的 MOD' : '暂无 MOD'}</p>
-                        <p className="text-xs mt-1">拖拽 ZIP 文件到此处安装</p>
+                        <p className="text-sm font-medium">{search ? t('mods.noMatch') : t('mods.noMods')}</p>
+                        <p className="text-xs mt-1">{t('mods.dragToInstall')}</p>
                       </div>
                     ) : (
                       filteredMods.map(mod => (
@@ -767,7 +739,6 @@ export default function App() {
                       ))
                     )}
                   </div>
-                  {/* Right: Detail panel (always visible) */}
                   {selectedMod ? (
                     <ModDetail
                       gameVersion={gameVersion}
@@ -782,7 +753,7 @@ export default function App() {
                   ) : (
                     <div className="w-80 bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-gray-300 dark:text-gray-600">
                       <Package size={40} className="mb-3" />
-                      <p className="text-sm dark:text-gray-500">选择一个 MOD 查看详情</p>
+                      <p className="text-sm dark:text-gray-500">{t('mods.selectModHint')}</p>
                     </div>
                   )}
                 </div>
@@ -796,17 +767,15 @@ export default function App() {
         </main>
       </div>
 
-      {/* Drag overlay */}
       {dragOver && (
         <div className="fixed inset-0 bg-blue-50/80 flex items-center justify-center z-50 pointer-events-none">
           <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
             <Download size={40} className="mx-auto mb-3 text-gray-900" />
-            <p className="text-lg font-semibold">拖放 ZIP 文件安装 MOD</p>
+            <p className="text-lg font-semibold">{t('mods.dragOverlay')}</p>
           </div>
         </div>
       )}
 
-      {/* Close dropdowns when clicking elsewhere */}
       {showProfiles && (
         <div className="fixed inset-0 z-40" onClick={() => setShowProfiles(false)} />
       )}
@@ -814,7 +783,6 @@ export default function App() {
         <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
       )}
 
-      {/* Crash Analysis Dialog */}
       {crashReport && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setCrashReport(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-[480px] max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -824,7 +792,7 @@ export default function App() {
                   <AlertTriangle size={20} className="text-amber-500" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900">游戏退出分析</h3>
+                  <h3 className="font-bold text-gray-900">{t('crashDialog.title')}</h3>
                   <p className="text-xs text-gray-400">{crashReport.logFile}</p>
                 </div>
               </div>
@@ -836,16 +804,16 @@ export default function App() {
               <div className="flex gap-3">
                 <div className="flex-1 bg-red-50 rounded-lg px-3 py-2 text-center">
                   <p className="text-lg font-bold text-red-600">{crashReport.errorCount}</p>
-                  <p className="text-[10px] text-red-400 uppercase font-semibold">错误</p>
+                  <p className="text-[10px] text-red-400 uppercase font-semibold">{t('crashDialog.errors')}</p>
                 </div>
                 <div className="flex-1 bg-amber-50 rounded-lg px-3 py-2 text-center">
                   <p className="text-lg font-bold text-amber-600">{crashReport.warnCount}</p>
-                  <p className="text-[10px] text-amber-400 uppercase font-semibold">警告</p>
+                  <p className="text-[10px] text-amber-400 uppercase font-semibold">{t('crashDialog.warnings')}</p>
                 </div>
               </div>
               {crashReport.issues.length > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase">检测到的问题</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase">{t('crashDialog.detectedIssues')}</p>
                   {crashReport.issues.map((issue, i) => (
                     <div key={i} className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-1">
@@ -866,13 +834,13 @@ export default function App() {
               ) : (
                 <div className="bg-gray-50 rounded-xl p-4 text-center">
                   <Info size={20} className="mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm text-gray-500">未检测到明确的崩溃原因</p>
-                  <p className="text-xs text-gray-400 mt-1">可能是正常退出，或者查看完整日志获取更多信息</p>
+                  <p className="text-sm text-gray-500">{t('crashDialog.noIssuesDetected')}</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('crashDialog.noIssuesHint')}</p>
                 </div>
               )}
               {crashReport.involvedMods && crashReport.involvedMods.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase">涉及的 MOD</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase">{t('crashDialog.involvedMods')}</p>
                   {crashReport.involvedMods.map((mod, i) => (
                     <div key={i} className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-3">
                       <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -888,7 +856,7 @@ export default function App() {
               )}
               {crashReport.notices && crashReport.notices.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase mb-2">无害提示（可忽略）</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase mb-2">{t('crashDialog.harmlessNotices')}</p>
                   <div className="bg-blue-50 rounded-lg px-4 py-3 space-y-1">
                     {crashReport.notices.map((n, i) => (
                       <p key={i} className="text-[11px] text-blue-600">{n}</p>
@@ -900,18 +868,17 @@ export default function App() {
             <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
               <button onClick={() => { setCrashReport(null); setPage('logs'); }}
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors">
-                查看完整日志
+                {t('crashDialog.viewFullLog')}
               </button>
               <button onClick={() => setCrashReport(null)}
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
-                关闭
+                {t('crashDialog.close')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Missing Mods Dialog */}
       {missingModsDialog && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setMissingModsDialog(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-[480px] max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -920,18 +887,18 @@ export default function App() {
                 <AlertTriangle size={20} className="text-amber-500" />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900">配置「{missingModsDialog.profileName}」存在问题</h3>
+                <h3 className="font-bold text-gray-900">{t('missingModsDialog.title', { name: missingModsDialog.profileName })}</h3>
                 <p className="text-xs text-gray-400">
-                  {missingModsDialog.missingMods?.length > 0 && `${missingModsDialog.missingMods.length} 个 MOD 缺失`}
+                  {missingModsDialog.missingMods?.length > 0 && `${missingModsDialog.missingMods.length} ${t('missingModsDialog.missingMods')}`}
                   {missingModsDialog.missingMods?.length > 0 && missingModsDialog.versionMismatches?.length > 0 && ' · '}
-                  {missingModsDialog.versionMismatches?.length > 0 && `${missingModsDialog.versionMismatches.length} 个版本变更`}
+                  {missingModsDialog.versionMismatches?.length > 0 && `${missingModsDialog.versionMismatches.length} ${t('missingModsDialog.versionMismatches')}`}
                 </p>
               </div>
             </div>
             <div className="px-6 py-4 overflow-y-auto max-h-52 space-y-3">
               {missingModsDialog.missingMods?.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-semibold text-gray-400 uppercase mb-1">缺失的 MOD</p>
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase mb-1">{t('missingModsDialog.missingMods')}</p>
                   {missingModsDialog.missingMods.map((m, i) => (
                     <div key={i} className="flex items-center gap-3 py-1.5">
                       <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
@@ -939,7 +906,7 @@ export default function App() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-800 truncate">{m.id}</p>
-                        {m.version && <p className="text-[10px] text-gray-400">记录版本: {m.version}</p>}
+                        {m.version && <p className="text-[10px] text-gray-400">{t('missingModsDialog.recordedVersion', { version: m.version })}</p>}
                       </div>
                     </div>
                   ))}
@@ -947,7 +914,7 @@ export default function App() {
               )}
               {missingModsDialog.versionMismatches?.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-semibold text-gray-400 uppercase mb-1">版本不匹配的 MOD</p>
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase mb-1">{t('missingModsDialog.versionMismatches')}</p>
                   {missingModsDialog.versionMismatches.map((m, i) => (
                     <div key={i} className="flex items-center gap-3 py-1.5">
                       <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
@@ -956,7 +923,7 @@ export default function App() {
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-800 truncate">{m.id}</p>
                         <p className="text-[10px] text-gray-400">
-                          记录: {m.savedVersion}，可用版本: {m.availableVersions?.join(', ') || '无'}
+                          {t('missingModsDialog.recorded', { saved: m.savedVersion, available: m.availableVersions?.join(', ') || t('common.unknown') })}
                         </p>
                       </div>
                     </div>
@@ -967,18 +934,17 @@ export default function App() {
             <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
               <button onClick={missingModsDialog.onIgnore}
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors">
-                忽略，继续应用
+                {t('missingModsDialog.ignore')}
               </button>
               <button onClick={missingModsDialog.onUpdate}
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
-                更新配置
+                {t('missingModsDialog.updateProfile')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Confirm Dialog */}
       {confirmDialog && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setConfirmDialog(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-[420px] overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -995,18 +961,17 @@ export default function App() {
               <button onClick={confirmDialog.onConfirm}
                 style={{ backgroundColor: confirmDialog.danger ? '#dc2626' : '#111827', color: '#fff' }}
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors">
-                确认
+                {t('confirmDialog.confirm')}
               </button>
               <button onClick={() => setConfirmDialog(null)}
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
-                取消
+                {t('confirmDialog.cancel')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 right-6 px-4 py-3 rounded-xl shadow-lg text-sm font-medium z-50 transition-all ${
           toast.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'

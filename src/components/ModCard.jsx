@@ -1,6 +1,7 @@
 import React from 'react';
 import { ToggleLeft, ToggleRight, AlertTriangle, Blocks, Gamepad2, Palette, Shield } from 'lucide-react';
 import { getUnsatisfiedDeps, checkMinGameVersion } from '../utils/deps';
+import { useT } from '../i18n/I18nContext';
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -16,20 +17,21 @@ function getMissingDeps(mod, allMods) {
   }));
 }
 
-function getModCategory(mod, allMods) {
+function getModCategory(mod, allMods, t) {
   const isDepForOthers = allMods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.some(d => d.id === mod.id));
-  if (isDepForOthers) return { label: '框架前置', color: 'bg-indigo-50 text-indigo-600', icon: Shield };
-  if (mod.affects_gameplay) return { label: '玩法改动', color: 'bg-amber-50 text-amber-700', icon: Gamepad2 };
-  return { label: '资源类', color: 'bg-teal-50 text-teal-600', icon: Palette };
+  if (isDepForOthers) return { label: t('modCard.catFramework'), color: 'bg-indigo-50 text-indigo-600', icon: Shield };
+  if (mod.affects_gameplay) return { label: t('modCard.catGameplay'), color: 'bg-amber-50 text-amber-700', icon: Gamepad2 };
+  return { label: t('modCard.catResource'), color: 'bg-teal-50 text-teal-600', icon: Palette };
 }
 
 export default function ModCard({ mod, allMods, translations, onToggle, onClick, selected, gameVersion }) {
+  const { t } = useT();
   const missingDeps = getMissingDeps(mod, allMods);
   const versionOk = checkMinGameVersion(mod, gameVersion);
   const versionIncompatible = versionOk === false;
-  const category = getModCategory(mod, allMods);
+  const category = getModCategory(mod, allMods, t);
   const CategoryIcon = category.icon;
-  const t = translations && translations[mod.id];
+  const modT = translations && translations[mod.id];
 
   return (
     <div
@@ -38,31 +40,28 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
         selected ? 'border-gray-900 dark:border-gray-500 shadow-md' : missingDeps.length > 0 ? 'border-red-200 dark:border-red-700' : versionIncompatible ? 'border-amber-200 dark:border-amber-700' : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600'
       } ${!mod.enabled ? 'opacity-60' : ''}`}
     >
-      {/* Missing deps banner */}
       {missingDeps.length > 0 && mod.enabled && (
         <div className="flex items-center gap-1.5 px-2.5 py-1.5 -mx-4 -mt-4 mb-3 bg-red-50 dark:bg-red-950 rounded-t-xl border-b border-red-100 dark:border-red-800">
           <AlertTriangle size={12} className="text-red-500 flex-shrink-0" />
           <span className="text-[11px] text-red-600 dark:text-red-400 font-medium truncate">
-            缺失依赖，无法正常工作：{missingDeps.map(d => d.id).join(', ')}
+            {t('modCard.missingDeps', { deps: missingDeps.map(d => d.id).join(', ') })}
           </span>
         </div>
       )}
 
-      {/* Version incompatibility banner */}
       {versionIncompatible && !missingDeps.length && (
         <div className="flex items-center gap-1.5 px-2.5 py-1.5 -mx-4 -mt-4 mb-3 bg-amber-50 dark:bg-amber-950 rounded-t-xl border-b border-amber-100 dark:border-amber-800">
           <AlertTriangle size={12} className="text-amber-500 flex-shrink-0" />
           <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium truncate">
-            需要游戏 v{mod.min_game_version} 以上版本（当前 {gameVersion}）
+            {t('modCard.versionIncompatible', { required: mod.min_game_version, current: gameVersion })}
           </span>
         </div>
       )}
 
-      {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-sm truncate">{(t && t.name) || mod.name}</h3>
+            <h3 className="font-semibold text-sm truncate">{(modT && modT.name) || mod.name}</h3>
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
             {mod.author} · v{mod.version}
@@ -71,7 +70,7 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
           className="flex-shrink-0 ml-2"
-          title={mod.enabled ? '点击禁用' : '点击启用'}
+          title={mod.enabled ? t('modCard.clickDisable') : t('modCard.clickEnable')}
         >
           {mod.enabled
             ? <ToggleRight size={28} className="text-emerald-500" />
@@ -80,18 +79,16 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
         </button>
       </div>
 
-      {/* Description */}
       <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-3 leading-relaxed">
-        {(t && t.desc) || mod.description || '暂无描述'}
+        {(modT && modT.desc) || mod.description || t('modCard.noDescription')}
       </p>
 
-      {/* Tags */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${category.color}`}>
           <CategoryIcon size={11} /> {category.label}
         </span>
         {!mod.enabled && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">已禁用</span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{t('modCard.disabled')}</span>
         )}
         {mod.has_dll && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-600">DLL</span>
@@ -103,7 +100,7 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
           <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${
             missingDeps.length > 0 ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'
           }`}>
-            <Blocks size={11} className="mr-0.5" /> {mod.dependencies.length} 依赖
+            <Blocks size={11} className="mr-0.5" /> {t('modCard.depsCount', { count: mod.dependencies.length })}
           </span>
         )}
         <span className="ml-auto text-[11px] text-gray-300 dark:text-gray-600">{formatSize(mod.size)}</span>

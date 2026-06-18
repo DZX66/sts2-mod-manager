@@ -2,27 +2,29 @@ import React from 'react';
 import {
   Package, FileText, FolderOpen, Save, HardDrive, ExternalLink, Github, Settings,
 } from 'lucide-react';
-
-const navItems = [
-  { id: 'mods', icon: Package, label: 'MOD 管理' },
-  { id: 'saves', icon: HardDrive, label: '存档管理' },
-  { id: 'logs', icon: FileText, label: '游戏日志' },
-  { id: 'settings', icon: Settings, label: '设置' },
-];
-
-const quickLinks = [
-  { id: 'nexus', icon: ExternalLink, label: 'Nexus Mods', action: () => window.api.openUrl('https://www.nexusmods.com/slaythespire2') },
-  { id: 'modsDir', icon: FolderOpen, label: 'MOD 文件夹', action: () => window.api.openModsDir() },
-  { id: 'logsDir', icon: FileText, label: '日志文件夹', action: () => window.api.openLogsDir() },
-  { id: 'savesDir', icon: Save, label: '存档文件夹', action: () => window.api.openSavesDir() },
-];
+import { useT } from '../i18n/I18nContext';
 
 export default function Sidebar({ page, setPage, gamePath, onSelectGamePath, enabledCount, totalCount, gameVersion }) {
+  const { t } = useT();
+
+  const navItems = [
+    { id: 'mods', icon: Package, label: t('nav.mods') },
+    { id: 'saves', icon: HardDrive, label: t('nav.saves') },
+    { id: 'logs', icon: FileText, label: t('nav.logs') },
+    { id: 'settings', icon: Settings, label: t('nav.settings') },
+  ];
+
+  const quickLinks = [
+    { id: 'nexus', icon: ExternalLink, label: t('nav.nexusMods'), action: () => window.api.openUrl('https://www.nexusmods.com/slaythespire2') },
+    { id: 'modsDir', icon: FolderOpen, label: t('nav.modsFolder'), action: () => window.api.openModsDir() },
+    { id: 'logsDir', icon: FileText, label: t('nav.logsFolder'), action: () => window.api.openLogsDir() },
+    { id: 'savesDir', icon: Save, label: t('nav.savesFolder'), action: () => window.api.openSavesDir() },
+  ];
   return (
     <div className="w-56 bg-white dark:bg-gray-950 border-r border-gray-100 dark:border-gray-800 flex flex-col">
       {/* Nav */}
       <nav className="flex-1 px-3 pt-4">
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">导航</p>
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">{t('nav.nav')}</p>
         {navItems.map(item => (
           <button key={item.id}
             onClick={() => setPage(item.id)}
@@ -38,7 +40,7 @@ export default function Sidebar({ page, setPage, gamePath, onSelectGamePath, ena
 
         <div className="h-px bg-gray-100 my-4" />
 
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">快速访问</p>
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">{t('nav.quickAccess')}</p>
         {quickLinks.map(item => (
           <button key={item.id}
             onClick={item.action}
@@ -53,11 +55,11 @@ export default function Sidebar({ page, setPage, gamePath, onSelectGamePath, ena
       <div className="p-3 border-t border-gray-100 dark:border-gray-800">
         <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase">游戏路径</p>
+            <p className="text-[10px] font-semibold text-gray-400 uppercase">{t('nav.gamePath')}</p>
             <button onClick={onSelectGamePath}
               className="text-[10px] text-blue-500 hover:text-blue-700 font-medium transition-colors"
-              title="手动选择游戏目录">
-              更改
+              title={t('nav.change')}>
+              {t('nav.change')}
             </button>
           </div>
           {gamePath ? (
@@ -66,16 +68,16 @@ export default function Sidebar({ page, setPage, gamePath, onSelectGamePath, ena
           ) : (
             <button onClick={onSelectGamePath}
               className="text-xs text-blue-600 hover:text-blue-800 font-medium">
-              点击选择游戏目录
+              {t('nav.clickSelectGamePath')}
             </button>
           )}
           <div className="flex items-center gap-2 mt-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-[11px] text-gray-500 dark:text-gray-400">{enabledCount}/{totalCount} MOD 已启用</span>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">{t('nav.modsEnabled', { enabled: enabledCount, total: totalCount })}</span>
           </div>
           {gameVersion && (
             <div className="mt-2 pt-2 border-t border-gray-100">
-              <p className="text-[10px] text-gray-400 dark:text-gray-500">游戏版本: <span className="text-gray-600 dark:text-gray-300 font-medium">{gameVersion}</span></p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">{t('nav.gameVersion')}: <span className="text-gray-600 dark:text-gray-300 font-medium">{gameVersion}</span></p>
             </div>
           )}
         </div>
