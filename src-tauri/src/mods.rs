@@ -336,18 +336,13 @@ pub fn full_mods_scan(game_path: &str) -> Vec<ModInfo> {
     if is_steam {
         if let Some(workshop_path) = steam::find_workshop_path(game_path) {
             let cfg = crate::config::load_config();
-            let enabled_ids: Vec<String> = if let Some(ref steam_id) = cfg.steam_id {
-                let workshop_entries = steam::read_workshop_mod_config(steam_id);
-                workshop_entries
-                    .iter()
-                    .filter(|e| e.is_enabled)
-                    .map(|e| e.id.clone())
-                    .collect()
+            let workshop_entries: Vec<steam::ModListEntry> = if let Some(ref steam_id) = cfg.steam_id {
+                steam::read_workshop_mod_config(steam_id)
             } else {
                 vec![]
             };
 
-            let workshop_mods = steam::scan_workshop_mods(&workshop_path, &enabled_ids);
+            let workshop_mods = steam::scan_workshop_mods(&workshop_path, &workshop_entries);
 
             for ws_mod in workshop_mods {
                 all_mods.push(steam::workshop_to_modinfo(&ws_mod));

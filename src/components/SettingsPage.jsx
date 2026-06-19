@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu, Cloud } from 'lucide-react';
+import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu, Cloud, FolderOpen } from 'lucide-react';
 import { useT } from '../i18n/I18nContext';
 
 export default function SettingsPage() {
@@ -18,7 +18,7 @@ export default function SettingsPage() {
       const info = await window.api.init();
       if (info.gamePath) setGamePath(info.gamePath);
       
-      const v = await window.api.getAppVersion().catch(() => '1.1.0');
+      const v = await window.api.getAppVersion().catch(() => '1.2.0');
       setAppVersion(v);
       
       const cfg = await window.api.getConfig().catch(() => ({}));

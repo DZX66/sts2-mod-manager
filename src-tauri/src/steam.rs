@@ -216,7 +216,8 @@ pub fn find_workshop_path(game_path: &str) -> Option<String> {
 
 /// Scan the workshop content directory for mods
 /// Each mod is a subfolder containing JSON manifest files
-pub fn scan_workshop_mods(workshop_path: &str, enabled_ids: &[String]) -> Vec<WorkshopModInfo> {
+/// Mods that exist in the workshop folder but are NOT listed in settings.save defualt to enabled
+pub fn scan_workshop_mods(workshop_path: &str, known_entries: &[ModListEntry]) -> Vec<WorkshopModInfo> {
     let workshop_dir = Path::new(workshop_path);
     if !workshop_dir.exists() {
         return vec![];
@@ -247,7 +248,13 @@ pub fn scan_workshop_mods(workshop_path: &str, enabled_ids: &[String]) -> Vec<Wo
                     {
                         let mod_id = content.get("id").and_then(|v| v.as_str()).map(String::from);
                         let is_enabled = if let Some(ref id) = mod_id {
-                            enabled_ids.contains(id)
+                            // If mod is in settings.save, use its enabled status
+                            // If mod is NOT in settings.save, default to enabled
+                            if let Some(entry) = known_entries.iter().find(|e| e.id == *id) {
+                                entry.is_enabled
+                            } else {
+                                true
+                            }
                         } else {
                             false
                         };
