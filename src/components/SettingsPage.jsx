@@ -21,13 +21,21 @@ export default function SettingsPage() {
       const v = await window.api.getAppVersion().catch(() => '1.2.0');
       setAppVersion(v);
       
-      const cfg = await window.api.getConfig().catch(() => ({}));
-      if (cfg.smartInstall !== undefined) {
-        setSmartInstall(cfg.smartInstall);
+      // 从 init 结果中直接获取 smartInstall 状态
+      if (info.smartInstall !== undefined) {
+        setSmartInstall(info.smartInstall);
       }
       
-      // init 完成后才加载 Steam 用户
-      await loadSteamUsers();
+      // 从 init 结果中直接获取 Steam 用户信息
+      if (info.steamUsers) {
+        setSteamUsers(info.steamUsers);
+      }
+      if (info.selectedSteamId) {
+        setSelectedSteamId(info.selectedSteamId);
+      }
+      if (info.workshopPath) {
+        setWorkshopPath(info.workshopPath);
+      }
     })();
   }, []);
 

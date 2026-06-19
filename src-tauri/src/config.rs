@@ -1,3 +1,4 @@
+use crate::steam;
 use crate::AppState;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -20,6 +21,14 @@ pub struct InitResult {
     pub game_path: Option<String>,
     #[serde(rename = "modsDir")]
     pub mods_dir: Option<String>,
+    #[serde(rename = "steamUsers")]
+    pub steam_users: Vec<steam::SteamUser>,
+    #[serde(rename = "selectedSteamId")]
+    pub selected_steam_id: Option<String>,
+    #[serde(rename = "workshopPath")]
+    pub workshop_path: Option<String>,
+    #[serde(rename = "smartInstall")]
+    pub smart_install: Option<bool>,
 }
 
 fn config_dir() -> PathBuf {
@@ -128,12 +137,15 @@ pub fn app_init(state: tauri::State<'_, AppState>) -> InitResult {
         detect_game_path()
     };
 
+    // Determine if this is a fresh config (first launch)
+    let is_fresh_config = cfg.game_path.is_none() && cfg.steam_id.is_none();
+
     if let Some(ref gp) = detected {
         let mut state_gp = state.game_path.lock().unwrap();
         *state_gp = Some(gp.clone());
-        // Persist if auto-detected
+        // Persist if auto-detected (clone cfg to avoid move)
         if cfg.game_path.as_deref() != Some(gp.as_str()) {
-            let mut new_cfg = cfg;
+            let mut new_cfg = cfg.clone();
             new_cfg.game_path = Some(gp.clone());
             save_config(&new_cfg);
         }
@@ -143,9 +155,53 @@ pub fn app_init(state: tauri::State<'_, AppState>) -> InitResult {
         .as_ref()
         .map(|p| Path::new(p).join("mods").to_string_lossy().to_string());
 
+    // Scan Steam users
+    let steam_users = steam::scan_steam_users();
+
+    // On first launch, auto-select the first Steam user if available
+    let selected_steam_id = if is_fresh_config || cfg.steam_id.is_none() {
+        if !steam_users.is_empty() {
+            let auto_id = Some(steam_users[0].steam_id.clone());
+            // Persist the auto-selected steam ID
+            let mut new_cfg = load_config();
+            if new_cfg.steam_id.is_none() {
+                new_cfg.steam_id = auto_id.clone();
+                save_config(&new_cfg);
+            }
+            auto_id
+        } else {
+            cfg.steam_id.clone()
+        }
+    } else {
+        cfg.steam_id.clone()
+    };
+
+    // Determine workshop path
+    let workshop_path = detected.as_ref().and_then(|gp| {
+        if gp.to_lowercase().contains("steamapps") {
+            steam::find_workshop_path(gp)
+        } else {
+            None
+        }
+    });
+
+    // On first launch, default smart_install to true
+    let smart_install = if is_fresh_config {
+        let mut new_cfg = load_config();
+        new_cfg.smart_install = Some(true);
+        save_config(&new_cfg);
+        Some(true)
+    } else {
+        cfg.smart_install
+    };
+
     InitResult {
         game_path: detected,
         mods_dir,
+        steam_users,
+        selected_steam_id,
+        workshop_path,
+        smart_install,
     }
 }
 
@@ -170,9 +226,24 @@ pub async fn app_select_game_path(
         save_config(&cfg);
 
         let mods_dir = Path::new(&gp).join("mods").to_string_lossy().to_string();
+
+        // Scan Steam users
+        let steam_users = steam::scan_steam_users();
+        let cfg_after = load_config();
+
+        let workshop_path = if gp.to_lowercase().contains("steamapps") {
+            steam::find_workshop_path(&gp)
+        } else {
+            None
+        };
+
         Ok(Some(InitResult {
             game_path: Some(gp),
             mods_dir: Some(mods_dir),
+            steam_users,
+            selected_steam_id: cfg_after.steam_id,
+            workshop_path,
+            smart_install: cfg_after.smart_install,
         }))
     } else {
         Ok(None)
