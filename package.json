@@ -9,9 +9,9 @@
     "dev": "concurrently \"npm run build:css\" \"webpack --watch --mode development\" \"wait-on ./dist/renderer.js && set ELECTRON_RUN_AS_NODE=&& electron .\"",
     "build": "npx tailwindcss -i ./src/index.css -o ./src/output.css && webpack --mode production",
     "build:tauri-fe": "npx tailwindcss -i ./src/index.css -o ./src/output.css && webpack --config webpack.tauri.config.js --mode production && copy /y .\\src\\output.css .\\dist-tauri\\output.css",
-    "tauri": "cargo tauri",
-    "tauri:dev": "npm run build:tauri-fe && cargo tauri dev",
-    "tauri:build": "npm run build:tauri-fe && cargo tauri build",
+    "tauri": "tauri",
+    "tauri:dev": "npm run build:tauri-fe && tauri dev",
+    "tauri:build": "npm run build:tauri-fe && tauri build",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
