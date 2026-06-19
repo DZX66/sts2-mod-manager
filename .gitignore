@@ -10,11 +10,11 @@ Thumbs.db
 
 # Tauri
 src-tauri/target/
-dist-tauri/
+dist-tauri/renderer.js
+dist-tauri/renderer.js.LICENSE.txt
 
 # Build outputs
 builds/
 
-dist/
 # Temp screenshots (hash-named)
 /[0-9a-f][0-9a-f][0-9a-f]*.png

@@ -5,6 +5,7 @@
   "identifier": "com.sts2.mod-manager",
   "build": {
     "frontendDist": "../dist-tauri",
+    "devUrl": "http://localhost:3000",
     "beforeBuildCommand": "",
     "beforeDevCommand": ""
   },
