@@ -68,6 +68,7 @@ window.api = {
   openLogsDir: () => invoke('shell_open_logs_dir'),
   openSavesDir: () => invoke('shell_open_saves_dir'),
   openUrl: (url) => invoke('shell_open_url', { url }),
+  openPath: (path) => invoke('shell_open_path', { path }),
 
   // Game
   launchGame: async () => {

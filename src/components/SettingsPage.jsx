@@ -243,7 +243,13 @@ export default function SettingsPage() {
               {workshopPath && (
                 <div className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <span className="text-xs text-gray-400 dark:text-gray-500">{t('settings.workshopPath')}</span>
-                  <span className="text-xs text-gray-600 dark:text-gray-300 truncate ml-2 max-w-[250px]">{workshopPath}</span>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[200px]">{workshopPath}</span>
+                    <button onClick={() => window.api.openPath(workshopPath)}
+                      className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0">
+                      <FolderOpen size={12} />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

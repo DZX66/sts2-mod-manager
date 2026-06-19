@@ -50,6 +50,7 @@ pub fn run() {
             shell_open_logs_dir,
             shell_open_saves_dir,
             shell_open_url,
+            shell_open_path,
             // Game
             game::game_launch,
             game::game_get_state,
@@ -156,6 +157,14 @@ fn shell_open_saves_dir() {
         if saves_dir.exists() {
             let _ = opener::open(saves_dir.to_string_lossy().to_string());
         }
+    }
+}
+
+#[tauri::command]
+fn shell_open_path(path: String) {
+    let p = std::path::Path::new(&path);
+    if p.exists() {
+        let _ = opener::open(path);
     }
 }
 

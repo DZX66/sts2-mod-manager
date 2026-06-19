@@ -10,10 +10,39 @@ import TitleBar from './components/TitleBar';
 import {
   Download, RefreshCw, Search, FolderOpen, Archive, UploadCloud, Play, Loader, X, AlertTriangle, Info,
   ToggleLeft, ToggleRight, Trash2, Layers, Save, ChevronDown, Package, LayoutGrid, List,
-  ArrowUpDown, CheckCircle2, Circle, Rocket,
+  ArrowUpDown, CheckCircle2, Circle, Rocket, HelpCircle,
 } from 'lucide-react';
 import { getUnsatisfiedDeps } from './utils/deps';
 import { useT } from './i18n/I18nContext';
+
+function parseSearchQuery(input) {
+  const trimmed = (input || '').trim();
+  if (!trimmed) return { tags: [], text: '' };
+  const tokens = trimmed.split(/\s+/);
+  const tags = [];
+  const textParts = [];
+  for (const token of tokens) {
+    if (token.startsWith('#')) {
+      const tag = token.slice(1).toLowerCase();
+      tags.push(tag);
+    } else {
+      textParts.push(token);
+    }
+  }
+  return { tags, text: textParts.join(' ') };
+}
+
+const TAG_FILTERS = {
+  workshop: (m) => m.modType === 'steam_workshop',
+  local: (m) => m.modType !== 'steam_workshop',
+  enabled: (m) => m.enabled === true,
+  disabled: (m) => m.enabled === false,
+  dll: (m) => m.has_dll === true,
+  pck: (m) => m.has_pck === true,
+  gameplay: (m) => m.affects_gameplay === true,
+  folder: (m) => m.isFolder === true,
+  file: (m) => m.isFolder === false,
+};
 
 export default function App() {
   const { t } = useT();
@@ -38,6 +67,7 @@ export default function App() {
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [missingModsDialog, setMissingModsDialog] = useState(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showSearchHelp, setShowSearchHelp] = useState(false);
   const [translations, setTranslations] = useState({});
 
   useEffect(() => {
@@ -363,11 +393,26 @@ export default function App() {
 
   const isFramework = (mod) => mods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.some(d => d.id === mod.id));
 
+  const { tags: searchTags, text: searchText } = parseSearchQuery(search);
+
   const filteredMods = mods.filter(m => {
     if (filter === 'enabled' && !m.enabled) return false;
     if (filter === 'disabled' && m.enabled) return false;
-    if (search) {
-      const s = search.toLowerCase();
+
+    // Apply tag filters
+    for (const tag of searchTags) {
+      if (tag === 'framework') {
+        if (!isFramework(m)) return false;
+      } else if (tag === 'missingdeps' || tag === 'dep') {
+        if (!hasMissingDeps(m)) return false;
+      } else if (TAG_FILTERS[tag]) {
+        if (!TAG_FILTERS[tag](m)) return false;
+      }
+    }
+
+    // Apply text search (only if there's text after tags)
+    if (searchText) {
+      const s = searchText.toLowerCase();
       return (m.name || '').toLowerCase().includes(s)
         || (m.id || '').toLowerCase().includes(s)
         || (m.author || '').toLowerCase().includes(s);
@@ -506,7 +551,35 @@ export default function App() {
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
                       placeholder={t('mods.searchPlaceholder')}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-100" />
+                      className="w-full pl-10 pr-10 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-100" />
+                    <button onClick={() => setShowSearchHelp(!showSearchHelp)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                      <HelpCircle size={16} />
+                    </button>
+                    {showSearchHelp && (
+                      <div className="absolute left-0 top-full mt-1 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-xs font-semibold text-gray-400 uppercase">搜索标签帮助</p>
+                          <button onClick={() => setShowSearchHelp(false)} className="text-gray-400 hover:text-gray-600">
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <div className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#workshop</code> 筛选创意工坊 MOD</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#local</code> 筛选本地 MOD</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#enabled / #disabled</code> 筛选启用/禁用状态</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#dll / #pck</code> 筛选有 DLL/PCK 文件的 MOD</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#gameplay</code> 筛选影响玩法的 MOD</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#folder / #file</code> 文件夹/单文件 MOD</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#framework</code> 框架类 MOD</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#missingdeps</code> 有缺失依赖的 MOD</p>
+                          <div className="border-t border-gray-100 dark:border-gray-700 pt-2 mt-2">
+                            <p className="text-gray-400">多个标签组合：<code className="text-[11px]">#workshop #enabled</code></p>
+                            <p className="text-gray-400">标签后加文字：<code className="text-[11px]">#workshop 地图</code></p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
                     {[['all', t('mods.filterAll')], ['enabled', t('mods.filterEnabled')], ['disabled', t('mods.filterDisabled')]].map(([key, label]) => (
