@@ -542,7 +542,7 @@ fn smart_extract_zip(zip_path: &str, mods_dir: &Path, smart_mode: bool) -> Resul
         }
 
         // Second pass: read JSON content
-        let mut json_by_dir: std::collections::BTreeMap<String, Vec<(String, String)>> = std::collections::BTreeMap::new();
+        let mut json_by_dir: std::collections::BTreeMap<String, Vec<(String, String, Option<String>)>> = std::collections::BTreeMap::new();
 
         for (name, is_dir) in &entries_meta {
             if *is_dir {
@@ -569,7 +569,10 @@ fn smart_extract_zip(zip_path: &str, mods_dir: &Path, smart_mode: bool) -> Resul
                 if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
                     if val.get("id").is_some() && val.get("name").is_some() {
                         let file_name = name.rsplit('/').next().unwrap_or(name).to_string();
-                        json_by_dir.entry(dir).or_default().push((name.clone(), file_name));
+                        let version = val.get("version").and_then(|v| v.as_str()).map(|s| {
+                            s.strip_prefix('v').or_else(|| s.strip_prefix('V')).unwrap_or(s).to_string()
+                        });
+                        json_by_dir.entry(dir).or_default().push((name.clone(), file_name, version));
                     }
                 }
             }
@@ -591,13 +594,19 @@ fn smart_extract_zip(zip_path: &str, mods_dir: &Path, smart_mode: bool) -> Resul
         let mut archive2 = zip::ZipArchive::new(file2).map_err(|e| e.to_string())?;
 
         for (dir, _jsons) in &json_by_dir {
-            let mod_folder_name = if dir.is_empty() {
+            let base_name = if dir.is_empty() {
                 // JSON is at root - use the JSON filename (without .json) as folder name
-                let json_file_name = _jsons[0].1.trim_end_matches(".json").to_string();
-                json_file_name
+                _jsons[0].1.trim_end_matches(".json").to_string()
             } else {
                 // JSON is in a subfolder - use that subfolder's name as folder name
                 dir.rsplit('/').next().unwrap_or(dir).to_string()
+            };
+
+            // Append version to folder name if available
+            let mod_folder_name = if let Some(ref ver) = _jsons[0].2 {
+                format!("{}_v{}", base_name, ver)
+            } else {
+                base_name
             };
 
             let dest_dir = mods_dir.join(&mod_folder_name);
