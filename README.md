@@ -6,8 +6,8 @@
 
 不用再手动复制文件夹了。装、删、开、关，拖进来就完事。
 
-[![Release](https://img.shields.io/github/v/release/ImogeneOctaviap794/sts2-mod-manager?style=flat-square&color=7c3aed)](https://github.com/ImogeneOctaviap794/sts2-mod-manager/releases)
-[![Stars](https://img.shields.io/github/stars/ImogeneOctaviap794/sts2-mod-manager?style=flat-square&color=f59e0b)](https://github.com/ImogeneOctaviap794/sts2-mod-manager)
+[![Release](https://img.shields.io/github/v/release/DZX66/sts2-mod-manager?style=flat-square&color=7c3aed)](https://github.com/DZX66/sts2-mod-manager/releases)
+[![Stars](https://img.shields.io/github/stars/DZX66/sts2-mod-manager?style=flat-square&color=f59e0b)](https://github.com/DZX66/sts2-mod-manager)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
 <br>
@@ -30,14 +30,14 @@
 
 | | 功能 | 说明 |
 |---|---|---|
-| 📦 | **MOD 管理** | 安装 / 卸载 / 启用 / 禁用，支持拖拽 `.zip` `.rar` 直接安装 |
-| �️ | **风险信号** | 自动标出缺失依赖、区分框架前置 / 玩法改动 / 资源类 MOD，一眼看清能不能安全启用 |
+| 📦 | **MOD 管理** | 安装 / 卸载 / 启用 / 禁用，支持拖拽 `.zip` 直接安装 |
+| 🏷️ | **风险信号** | 自动标出缺失依赖、区分框架前置 / 玩法改动 / 资源类 MOD，一眼看清能不能安全启用 |
 | 🔗 | **依赖跳转** | 详情面板中点击依赖项直接跳转到对应 MOD |
 | 🔀 | **智能排序** | 按名称 / 依赖问题优先 / 影响玩法 / 分类 / 大小排序 |
 | 🖼️ | **双视图模式** | 卡片网格视图（默认）和双栏列表视图随时切换 |
 | 🧭 | **首次引导** | 3 步卡片式引导流程：选目录 → 装 MOD → 启动验证，新手友好 |
 | ⚠️ | **操作确认** | 卸载、批量卸载、应用配置、还原备份等风险操作弹出确认，说明后果再执行 |
-| �💾 | **存档管理** | 普通存档 & MOD 存档分开展示，一键导出备份、导入还原 |
+| 💾 | **存档管理** | 普通存档 & MOD 存档分开展示，一键导出备份、导入还原 |
 | 📋 | **游戏日志** | 实时查看最新日志，出问题秒定位 |
 | 🔍 | **崩溃分析** | 游戏退出后自动扫日志，精确到哪个 MOD 炸了 |
 | 🌐 | **MOD 翻译** | 英文描述看不懂？一键翻译成中文 |
@@ -46,9 +46,61 @@
 
 <br>
 
+> 本仓库为 [ImogeneOctaviap794/sts2-mod-manager](https://github.com/ImogeneOctaviap794/sts2-mod-manager) 的增强分支，继承上游全部功能的基础上新增了以下特性：
+
+---
+
+## ⭐ 新增功能（相比上游）
+
+### 🌍 多语言支持（本地化）
+<p>完整的中文 / 英文界面切换，基于 React Context + JSON 翻译文件，所有界面文案均已本地化。在设置页一键切换语言，无需重启。</p>
+
+### 🎨 深色 / 浅色主题
+<p>支持「浅色」「深色」「跟随系统」三种主题模式。选择跟随系统时自动适配 Windows 主题设置，保护双眼。</p>
+
+### ⚙️ 设置页面
+<p>集中管理所有偏好设置：<br>
+- 🎨 外观主题切换<br>
+- 🌐 界面语言选择<br>
+- 🎮 游戏路径配置<br>
+- 📦 智能安装开关<br>
+- 🔄 Steam 用户切换</p>
+
+### 🧩 Steam 创意工坊支持
+<p>直接检测当前 Steam 用户，扫描创意工坊订阅目录，将创意工坊 MOD 自动纳入管理。在 MOD 列表中标记为「创意工坊 MOD」，支持查看启用状态，无需离开管理器即可概览所有创意工坊内容。<br>
+<sub>创意工坊 MOD 的卸载需通过 Steam 客户端操作。</sub></p>
+
+### 🤖 智能安装模式
+<p>安装 MOD 时自动分析压缩包结构：<br>
+- 若 ZIP 根目录直接包含 MOD 文件，自动创建以 MOD 名称 + 版本号命名的文件夹<br>
+- 若 ZIP 根目录已是单文件夹，直接使用<br>
+- 可在设置页关闭智能模式，使用传统安装方式</p>
+
+### 📝 MOD 备注功能
+<p>在 MOD 详情页可以为每个 MOD 添加文本备注，方便记录安装原因、注意事项、兼容性问题等。备注数据持久化保存，重启管理器不丢失。</p>
+
+### 🎯 游戏版本兼容性检测
+<p>解析游戏 <code>release_info.json</code> 获取当前游戏版本，与 MOD 清单中的 <code>min_game_version</code> 字段比对。游戏版本过低时在 MOD 卡片和详情页显示兼容性警告，避免加载不兼容 MOD 导致崩溃。</p>
+
+### 📊 改进的日志分析
+<p>增强日志分析引擎，更准确地识别错误（Error）和警告（Warning）级别，崩溃分析报告更加精确，帮助快速定位问题 MOD。</p>
+
+### 🔄 新版 MOD 清单适配
+<p>适配 STS2 新版 MOD 清单格式：<br>
+- 支持 <code>min_game_version</code> 版本要求字段<br>
+- 支持新版 <code>dependencies</code> 依赖声明格式<br>
+- 忽略版本号开头的 <code>"v"</code> 前缀，兼容更多 MOD</p>
+
+### 🛠 档案切换重构
+<p>重新实现配置档案的切换逻辑，解决了存档管理中 MOD 状态不一致的问题。应用配置时支持检测缺失 MOD 和版本不匹配，并提供「忽略继续」和「更新配置」两种处理方式。</p>
+
+<br>
+
+---
+
 ## 📥 下载
 
-👉 [**点这里下载最新版**](https://github.com/ImogeneOctaviap794/sts2-mod-manager/releases)
+👉 [**点这里下载最新版**](https://github.com/DZX66/sts2-mod-manager/releases)
 
 > 安装包约 4MB，内置 WebView2 引导。Win10 / Win11 直接运行。
 
@@ -104,4 +156,6 @@ docs/             截图素材
 
 <div align="center">
 <sub>MIT License · 给个 ⭐ 就是最大的支持</sub>
+<br>
+<sub>上游仓库：<a href="https://github.com/ImogeneOctaviap794/sts2-mod-manager">ImogeneOctaviap794/sts2-mod-manager</a></sub>
 </div>

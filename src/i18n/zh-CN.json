@@ -237,7 +237,7 @@
     "smartInstall": "智能安装",
     "smartInstallDesc": "安装 MOD 时的解压方式",
     "smartInstallLabel": "智能模式（自动创建文件夹，默认开启）",
-    "github": "GitHub"
+    "github": "上游 GitHub"
   },
   "crashDialog": {
     "title": "游戏退出分析",
