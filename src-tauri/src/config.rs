@@ -10,6 +10,8 @@ pub struct Config {
     pub game_path: Option<String>,
     #[serde(rename = "smartInstall")]
     pub smart_install: Option<bool>,
+    #[serde(rename = "steamId")]
+    pub steam_id: Option<String>,
 }
 
 #[derive(Serialize)]

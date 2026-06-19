@@ -125,7 +125,7 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
             [t('modDetail.author'), mod.author || t('modDetail.unknown')],
             [t('modDetail.version'), mod.version || t('modDetail.unknown')],
             [t('modDetail.size'), formatSize(mod.size)],
-            [t('modDetail.type'), mod.isFolder ? t('modDetail.typeFolder') : t('modDetail.typeFile')],
+            [t('modDetail.type'), mod.modType === 'steam_workshop' ? t('modDetail.typeWorkshop') : mod.isFolder ? t('modDetail.typeFolder') : t('modDetail.typeFile')],
             ...(mod.min_game_version ? [[t('modDetail.requiredGameVersion'), `≥ v${mod.min_game_version}`]] : []),
           ].map(([label, value]) => (
             <div key={label} className="flex items-center justify-between">
@@ -230,9 +230,14 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
           }`}>
           {mod.enabled ? t('modDetail.disableMod') : t('modDetail.enableMod')}
         </button>
-        <button onClick={onUninstall}
-          className="w-full py-2 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900 transition-colors flex items-center justify-center gap-2">
-          <Trash2 size={14} /> {t('modDetail.uninstallMod')}
+        <button onClick={mod.modType === 'steam_workshop' ? undefined : onUninstall}
+          disabled={mod.modType === 'steam_workshop'}
+          className={`w-full py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+            mod.modType === 'steam_workshop'
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900'
+          }`}>
+          <Trash2 size={14} /> {mod.modType === 'steam_workshop' ? t('modDetail.uninstallDisabledWorkshop') : t('modDetail.uninstallMod')}
         </button>
       </div>
     </div>

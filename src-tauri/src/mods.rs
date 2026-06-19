@@ -1,4 +1,5 @@
 use crate::AppState;
+use crate::steam;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Read;
@@ -38,6 +39,8 @@ pub struct ModInfo {
     pub path: String,
     pub files: Vec<String>,
     pub size: u64,
+    #[serde(rename = "modType")]
+    pub mod_type: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -48,6 +51,10 @@ pub struct ToggleModInfo {
     pub folder_name: String,
     pub files: Option<Vec<String>>,
     pub enabled: bool,
+    #[serde(rename = "modId")]
+    pub mod_id: Option<String>,
+    #[serde(rename = "modType")]
+    pub mod_type: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -156,13 +163,11 @@ fn try_parse_mod(full_path: &Path, item_name: &str, enabled: bool) -> Option<Mod
                             v.as_array().map(|arr| {
                                 arr.iter().filter_map(|item| {
                                     if let Some(s) = item.as_str() {
-                                        // Old format: plain string dependency id
                                         Some(DependencyInfo {
                                             id: s.to_string(),
                                             min_version: None,
                                         })
                                     } else if let Some(obj) = item.as_object() {
-                                        // New format: object with id and optional min_version
                                         obj.get("id")
                                             .and_then(|v| v.as_str())
                                             .map(|id| DependencyInfo {
@@ -187,6 +192,7 @@ fn try_parse_mod(full_path: &Path, item_name: &str, enabled: bool) -> Option<Mod
                         has_dll: Some(has_dll),
                         has_pck: Some(has_pck),
                         enabled,
+                        mod_type: None,
                         instance_key: full_path.to_string_lossy().to_string(),
                         folder_name: item_name.to_string(),
                         is_folder: true,
@@ -241,13 +247,11 @@ fn try_parse_mod(full_path: &Path, item_name: &str, enabled: bool) -> Option<Mod
                         v.as_array().map(|arr| {
                             arr.iter().filter_map(|item| {
                                 if let Some(s) = item.as_str() {
-                                    // Old format: plain string dependency id
                                     Some(DependencyInfo {
                                         id: s.to_string(),
                                         min_version: None,
                                     })
                                 } else if let Some(obj) = item.as_object() {
-                                    // New format: object with id and optional min_version
                                     obj.get("id")
                                         .and_then(|v| v.as_str())
                                         .map(|id| DependencyInfo {
@@ -270,6 +274,7 @@ fn try_parse_mod(full_path: &Path, item_name: &str, enabled: bool) -> Option<Mod
                     has_dll: Some(has_dll),
                     has_pck: Some(has_pck),
                     enabled,
+                    mod_type: None,
                     instance_key: full_path.to_string_lossy().to_string(),
                     folder_name: base_name.to_string(),
                     is_folder: false,
@@ -283,6 +288,7 @@ fn try_parse_mod(full_path: &Path, item_name: &str, enabled: bool) -> Option<Mod
     None
 }
 
+/// Scan local mods only (from mods/ and mods_disabled/ directories)
 pub fn scan_mods_internal(game_path: &str) -> Vec<ModInfo> {
     let mods_dir = get_mods_dir(game_path);
     if !mods_dir.exists() {
@@ -318,8 +324,39 @@ pub fn scan_mods_internal(game_path: &str) -> Vec<ModInfo> {
         }
     }
 
+    mods
+}
+
+/// Full scan including both local and workshop mods
+pub fn full_mods_scan(game_path: &str) -> Vec<ModInfo> {
+    let mut all_mods = scan_mods_internal(game_path);
+
+    // Try to add workshop mods if game is steam-version
+    let is_steam = game_path.to_lowercase().contains("steamapps");
+    if is_steam {
+        if let Some(workshop_path) = steam::find_workshop_path(game_path) {
+            let cfg = crate::config::load_config();
+            let enabled_ids: Vec<String> = if let Some(ref steam_id) = cfg.steam_id {
+                let workshop_entries = steam::read_workshop_mod_config(steam_id);
+                workshop_entries
+                    .iter()
+                    .filter(|e| e.is_enabled)
+                    .map(|e| e.id.clone())
+                    .collect()
+            } else {
+                vec![]
+            };
+
+            let workshop_mods = steam::scan_workshop_mods(&workshop_path, &enabled_ids);
+
+            for ws_mod in workshop_mods {
+                all_mods.push(steam::workshop_to_modinfo(&ws_mod));
+            }
+        }
+    }
+
     // Sort: enabled first, then alphabetical
-    mods.sort_by(|a, b| {
+    all_mods.sort_by(|a, b| {
         if a.enabled != b.enabled {
             return if a.enabled {
                 std::cmp::Ordering::Less
@@ -332,7 +369,7 @@ pub fn scan_mods_internal(game_path: &str) -> Vec<ModInfo> {
         a_name.to_lowercase().cmp(&b_name.to_lowercase())
     });
 
-    mods
+    all_mods
 }
 
 fn find_folder_mod_location(game_path: &str, folder_name: &str) -> Option<PathBuf> {
@@ -367,10 +404,13 @@ fn find_flat_mod_base_dir(game_path: &str, files: &[String]) -> Option<PathBuf> 
 #[tauri::command]
 pub fn mods_scan(state: tauri::State<'_, AppState>) -> Vec<ModInfo> {
     let gp = state.game_path.lock().unwrap();
-    match &*gp {
-        Some(p) => scan_mods_internal(p),
-        None => vec![],
-    }
+    let game_path = match &*gp {
+        Some(p) => p.clone(),
+        None => return vec![],
+    };
+    drop(gp);
+
+    full_mods_scan(&game_path)
 }
 
 #[tauri::command]
@@ -391,6 +431,51 @@ pub fn mods_toggle(
         }
     };
     drop(gp);
+
+    // If it's a workshop mod, toggle via settings.save instead of moving files
+    if mod_info.mod_type.as_deref() == Some("steam_workshop") {
+        let cfg = crate::config::load_config();
+        let steam_id = match cfg.steam_id {
+            Some(ref id) => id.clone(),
+            None => {
+                return ModResult {
+                    success: false,
+                    error: Some("未选择 Steam 用户".into()),
+                    mods: None,
+                    installed: None,
+                }
+            }
+        };
+
+        let mod_id = match mod_info.mod_id {
+            Some(ref id) => id.clone(),
+            None => {
+                return ModResult {
+                    success: false,
+                    error: Some("缺少 MOD ID".into()),
+                    mods: None,
+                    installed: None,
+                }
+            }
+        };
+
+        if let Err(e) = steam::toggle_workshop_mod(&steam_id, &mod_id, mod_info.enabled) {
+            return ModResult {
+                success: false,
+                error: Some(e),
+                mods: None,
+                installed: None,
+            };
+        }
+
+        // Return full mods list after toggle
+        return ModResult {
+            success: true,
+            error: None,
+            mods: Some(full_mods_scan(&game_path)),
+            installed: None,
+        };
+    }
 
     let mods_dir = get_mods_dir(&game_path);
     let disabled_dir = get_disabled_dir(&game_path);
@@ -449,7 +534,7 @@ pub fn mods_toggle(
     ModResult {
         success: true,
         error: None,
-        mods: Some(scan_mods_internal(&game_path)),
+        mods: Some(full_mods_scan(&game_path)),
         installed: None,
     }
 }
@@ -499,13 +584,59 @@ pub fn mods_uninstall(
     ModResult {
         success: true,
         error: None,
-        mods: Some(scan_mods_internal(&game_path)),
+        mods: Some(full_mods_scan(&game_path)),
         installed: None,
     }
 }
 
-/// Smart extract: given a zip, find mod manifest .json files and organize into folder mods.
-/// * `smart_mode` - if true, use smart folder-based extraction; if false, use legacy extraction
+// ── Steam Workshop Commands ──
+
+#[derive(Serialize)]
+pub struct SteamUsersResult {
+    pub users: Vec<steam::SteamUser>,
+    pub selected_steam_id: Option<String>,
+    pub workshop_path: Option<String>,
+}
+
+#[tauri::command]
+pub fn steam_get_users(state: tauri::State<'_, AppState>) -> SteamUsersResult {
+    // Try AppState first, then fall back to config
+    let gp = state.game_path.lock().unwrap();
+    let game_path = gp.clone();
+    drop(gp);
+
+    let cfg = crate::config::load_config();
+
+    // Use game_path from state or config
+    let effective_game_path = game_path.or_else(|| cfg.game_path.clone());
+
+    let users = steam::scan_steam_users();
+
+    let workshop_path = effective_game_path.as_ref().and_then(|p| {
+        if p.to_lowercase().contains("steamapps") {
+            steam::find_workshop_path(p)
+        } else {
+            None
+        }
+    });
+
+    SteamUsersResult {
+        users,
+        selected_steam_id: cfg.steam_id,
+        workshop_path,
+    }
+}
+
+#[tauri::command]
+pub fn steam_select_user(steam_id: String) -> bool {
+    let mut cfg = crate::config::load_config();
+    cfg.steam_id = Some(steam_id);
+    crate::config::save_config(&cfg);
+    true
+}
+
+// ── Smart extract functions (unchanged) ──
+
 fn smart_extract_zip(zip_path: &str, mods_dir: &Path, smart_mode: bool) -> Result<(), String> {
     let ext = Path::new(zip_path)
         .extension()
@@ -532,36 +663,25 @@ fn smart_extract_zip(zip_path: &str, mods_dir: &Path, smart_mode: bool) -> Resul
     }
 
     if smart_mode {
-        // ── Smart mode: find JSON manifests in all subfolders, create folder mods ──
-        // First pass: collect all entry paths and metadata (to avoid borrowing conflicts)
-        let mut entries_meta: Vec<(String, bool)> = Vec::new(); // (name, is_dir)
+        let mut entries_meta: Vec<(String, bool)> = Vec::new();
         for i in 0..archive.len() {
             let entry = archive.by_index(i).map_err(|e| e.to_string())?;
             let name = entry.name().replace('\\', "/");
             entries_meta.push((name, entry.is_dir()));
         }
 
-        // Second pass: read JSON content
         let mut json_by_dir: std::collections::BTreeMap<String, Vec<(String, String, Option<String>)>> = std::collections::BTreeMap::new();
 
         for (name, is_dir) in &entries_meta {
-            if *is_dir {
-                continue;
-            }
-            // Determine containing directory
+            if *is_dir { continue; }
             let dir = if let Some(idx) = name.rfind('/') {
                 name[..idx].to_string()
             } else {
-                String::new() // root
+                String::new()
             };
+            if !name.ends_with(".json") || name.starts_with('.') { continue; }
 
-            if !name.ends_with(".json") || name.starts_with('.') {
-                continue;
-            }
-
-            // Find index of this entry to read it
             let idx = entries_meta.iter().position(|(n, _)| n == name).unwrap();
-            // Try to read and parse the JSON
             let mut buf = Vec::new();
             let mut entry = archive.by_index(idx).map_err(|e| e.to_string())?;
             std::io::Read::read_to_end(&mut entry, &mut buf).map_err(|e| e.to_string())?;
@@ -579,57 +699,39 @@ fn smart_extract_zip(zip_path: &str, mods_dir: &Path, smart_mode: bool) -> Resul
         }
 
         if json_by_dir.is_empty() {
-            // No manifest found, fallback to legacy mode
             return fallback_extract_zip(zip_path, mods_dir);
         }
 
-        // Check for multiple .json files in the same directory -> fallback
         let has_multi_json = json_by_dir.values().any(|v| v.len() > 1);
         if has_multi_json {
             return fallback_extract_zip(zip_path, mods_dir);
         }
 
-        // Re-open for extraction
         let file2 = fs::File::open(zip_path).map_err(|e| e.to_string())?;
         let mut archive2 = zip::ZipArchive::new(file2).map_err(|e| e.to_string())?;
 
         for (dir, _jsons) in &json_by_dir {
             let base_name = if dir.is_empty() {
-                // JSON is at root - use the JSON filename (without .json) as folder name
                 _jsons[0].1.trim_end_matches(".json").to_string()
             } else {
-                // JSON is in a subfolder - use that subfolder's name as folder name
                 dir.rsplit('/').next().unwrap_or(dir).to_string()
             };
-
-            // Append version to folder name if available
             let mod_folder_name = if let Some(ref ver) = _jsons[0].2 {
                 format!("{}_v{}", base_name, ver)
             } else {
                 base_name
             };
-
             let dest_dir = mods_dir.join(&mod_folder_name);
             let _ = fs::create_dir_all(&dest_dir);
 
-            // Get all files that belong in this mod directory
-            let _prefix = if dir.is_empty() {
-                String::new()
-            } else {
-                format!("{}/", dir)
-            };
-
-            // Extract all files belonging to this mod
             for i in 0..archive2.len() {
                 let mut entry = archive2.by_index(i).map_err(|e| e.to_string())?;
                 let ep = entry.name().replace('\\', "/");
                 if entry.is_dir() { continue; }
 
                 let rel = if dir.is_empty() {
-                    // JSON is at zip root: extract all files preserving subdirectory structure
                     Some(&ep[..])
                 } else {
-                    // JSON is in a subfolder: extract only files under that subfolder
                     let search_prefix = format!("{}/", dir);
                     if ep.starts_with(&search_prefix) {
                         Some(&ep[search_prefix.len()..])
@@ -650,29 +752,21 @@ fn smart_extract_zip(zip_path: &str, mods_dir: &Path, smart_mode: bool) -> Resul
                 }
             }
         }
-
         return Ok(());
     }
 
-    // ── Legacy mode (non-smart) ──
     fallback_extract_zip(zip_path, mods_dir)
 }
 
-/// Original legacy extraction logic (fallback)
 fn fallback_extract_zip(zip_path: &str, mods_dir: &Path) -> Result<(), String> {
-    let file = fs::File::open(zip_path).map_err(|e| format!(
-        "无法读取压缩包: {}", e
-    ))?;
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| format!(
-        "无法读取压缩包: {}", e
-    ))?;
+    let file = fs::File::open(zip_path).map_err(|e| format!("无法读取压缩包: {}", e))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("无法读取压缩包: {}", e))?;
 
     if archive.len() == 0 {
         return Err(format!("压缩包为空: {}", Path::new(zip_path).file_name().unwrap_or_default().to_string_lossy()));
     }
 
-    // ── Smart search: find MOD manifest JSON files inside the ZIP ──
-    let mut mod_roots: Vec<(String, String)> = Vec::new(); // (mod_dir, folder_name)
+    let mut mod_roots: Vec<(String, String)> = Vec::new();
     let mut flat_mod = false;
     for i in 0..archive.len() {
         let entry = archive.by_index(i).map_err(|e| e.to_string())?;
@@ -699,7 +793,6 @@ fn fallback_extract_zip(zip_path: &str, mods_dir: &Path) -> Result<(), String> {
     }
 
     if !mod_roots.is_empty() || flat_mod {
-        // Re-open for extraction
         let file2 = fs::File::open(zip_path).map_err(|e| e.to_string())?;
         let mut archive2 = zip::ZipArchive::new(file2).map_err(|e| e.to_string())?;
 
@@ -739,7 +832,6 @@ fn fallback_extract_zip(zip_path: &str, mods_dir: &Path) -> Result<(), String> {
         return Ok(());
     }
 
-    // ── Fallback: no manifest found, use legacy extraction ──
     let mut top_dirs = std::collections::HashSet::new();
     let mut has_root_file = false;
     for i in 0..archive.len() {
@@ -813,7 +905,6 @@ fn copy_dir_recursive(src: &Path, dest: &Path) -> Result<(), String> {
 }
 
 fn is_smart_install_default(_state: &AppState) -> bool {
-    // Load config and check smart_install setting, default to true
     let cfg = crate::config::load_config();
     cfg.smart_install.unwrap_or(true)
 }
@@ -885,7 +976,7 @@ pub async fn mods_install(
     Ok(ModResult {
         success: true,
         error: None,
-        mods: Some(scan_mods_internal(&game_path)),
+        mods: Some(full_mods_scan(&game_path)),
         installed: Some(installed),
     })
 }
@@ -937,7 +1028,7 @@ pub fn mods_install_drop(
     ModResult {
         success: true,
         error: None,
-        mods: Some(scan_mods_internal(&game_path)),
+        mods: Some(full_mods_scan(&game_path)),
         installed: Some(installed),
     }
 }
@@ -1072,7 +1163,6 @@ pub async fn mods_restore(
     match file {
         Some(path) => {
             let path_str = path.to_string();
-            // For restore, use smart_mode=true to ensure folder structure
             if let Err(e) = smart_extract_zip(&path_str, &mods_dir, true) {
                 return Ok(ModResult {
                     success: false,
@@ -1084,7 +1174,7 @@ pub async fn mods_restore(
             Ok(ModResult {
                 success: true,
                 error: None,
-                mods: Some(scan_mods_internal(&game_path)),
+                mods: Some(full_mods_scan(&game_path)),
                 installed: None,
             })
         }

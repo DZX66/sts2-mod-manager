@@ -5,11 +5,11 @@ mod mods;
 mod notes;
 mod profiles;
 mod saves;
+mod steam;
 mod translate;
 mod translations;
 
 use std::sync::Mutex;
-use tauri::Manager;
 
 pub struct AppState {
     pub game_path: Mutex<Option<String>>,
@@ -69,6 +69,9 @@ pub fn run() {
             // Mod notes
             notes::mods_notes_load,
             notes::mods_notes_save,
+            // Steam
+            mods::steam_get_users,
+            mods::steam_select_user,
             // Saves
             saves::saves_scan,
             saves::saves_export,

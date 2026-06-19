@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu } from 'lucide-react';
+import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu, Cloud } from 'lucide-react';
 import { useT } from '../i18n/I18nContext';
 
 export default function SettingsPage() {
@@ -8,19 +8,48 @@ export default function SettingsPage() {
   const [gamePath, setGamePath] = useState(null);
   const [appVersion, setAppVersion] = useState('');
   const [smartInstall, setSmartInstall] = useState(true);
+  const [steamUsers, setSteamUsers] = useState([]);
+  const [selectedSteamId, setSelectedSteamId] = useState(null);
+  const [workshopPath, setWorkshopPath] = useState(null);
 
   useEffect(() => {
-    window.api.init().then(info => {
+    (async () => {
+      // 必须先等 init 完成，确保 game_path 已设置
+      const info = await window.api.init();
       if (info.gamePath) setGamePath(info.gamePath);
-    });
-    window.api.getAppVersion().then(v => setAppVersion(v)).catch(() => setAppVersion('1.1.0'));
-    // Load config
-    window.api.getConfig().then(cfg => {
+      
+      const v = await window.api.getAppVersion().catch(() => '1.1.0');
+      setAppVersion(v);
+      
+      const cfg = await window.api.getConfig().catch(() => ({}));
       if (cfg.smartInstall !== undefined) {
         setSmartInstall(cfg.smartInstall);
       }
-    }).catch(() => {});
+      
+      // init 完成后才加载 Steam 用户
+      await loadSteamUsers();
+    })();
   }, []);
+
+  const loadSteamUsers = async () => {
+    try {
+      const result = await window.api.getSteamUsers();
+      setSteamUsers(result.users || []);
+      setSelectedSteamId(result.selected_steam_id || null);
+      setWorkshopPath(result.workshop_path || null);
+    } catch (e) {
+      console.error('Failed to load steam users:', e);
+    }
+  };
+
+  const handleSteamUserChange = async (steamId) => {
+    setSelectedSteamId(steamId);
+    try {
+      await window.api.selectSteamUser(steamId);
+    } catch (e) {
+      console.error('Failed to save steam user:', e);
+    }
+  };
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme);
@@ -184,6 +213,42 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+
+        {/* Steam Workshop */}
+        {workshopPath && (
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-6 mb-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+                <Cloud size={18} className="text-gray-600" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.steamWorkshop')}</h2>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{t('settings.steamWorkshopDesc')}</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500 dark:text-gray-400">{t('settings.steamUser')}</span>
+                <select
+                  value={selectedSteamId || ''}
+                  onChange={(e) => handleSteamUserChange(e.target.value)}
+                  className="px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                >
+                  <option value="">{t('settings.selectSteamUser')}</option>
+                  {steamUsers.map(u => (
+                    <option key={u.steam_id} value={u.steam_id}>{u.steam_id}</option>
+                  ))}
+                </select>
+              </div>
+              {workshopPath && (
+                <div className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{t('settings.workshopPath')}</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-300 truncate ml-2 max-w-[250px]">{workshopPath}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* About */}
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-6">

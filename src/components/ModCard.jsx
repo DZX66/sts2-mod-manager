@@ -1,5 +1,5 @@
 import React from 'react';
-import { ToggleLeft, ToggleRight, AlertTriangle, Blocks, Gamepad2, Palette, Shield } from 'lucide-react';
+import { ToggleLeft, ToggleRight, AlertTriangle, Blocks, Gamepad2, Palette, Shield, Cloud } from 'lucide-react';
 import { getUnsatisfiedDeps, checkMinGameVersion } from '../utils/deps';
 import { useT } from '../i18n/I18nContext';
 
@@ -95,6 +95,11 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
         )}
         {mod.has_pck && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-purple-50 text-purple-600">PCK</span>
+        )}
+        {mod.modType === 'steam_workshop' && (
+          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-cyan-50 text-cyan-600">
+            <Cloud size={11} /> {t('modCard.catWorkshop')}
+          </span>
         )}
         {mod.dependencies && mod.dependencies.length > 0 && (
           <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${

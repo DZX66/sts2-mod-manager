@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -217,7 +216,7 @@ fn scan_save_slot(user_dir: &Path, slot: &str, modded: bool) -> Option<SaveSlot>
     let has_progress = progress_path.exists();
     let has_prefs = saves_dir.join("prefs.save").exists();
 
-    let (mut total_size, mut last_modified) = if saves_dir.exists() {
+    let (mut total_size, last_modified) = if saves_dir.exists() {
         walk_size_and_mtime(&saves_dir)
     } else {
         (0, 0)

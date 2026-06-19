@@ -1,5 +1,5 @@
 import React from 'react';
-import { ToggleLeft, ToggleRight, AlertTriangle, GripVertical, Blocks, Gamepad2, Palette, Shield } from 'lucide-react';
+import { ToggleLeft, ToggleRight, AlertTriangle, GripVertical, Blocks, Gamepad2, Palette, Shield, Cloud } from 'lucide-react';
 import { getUnsatisfiedDeps, checkMinGameVersion } from '../utils/deps';
 import { useT } from '../i18n/I18nContext';
 
@@ -81,6 +81,11 @@ export default function ModListItem({ mod, allMods, translations, selected, mult
         )}
         {mod.has_pck && (
           <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-500">PCK</span>
+        )}
+        {mod.modType === 'steam_workshop' && (
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-50 text-cyan-500 flex items-center gap-0.5">
+            <Cloud size={10} /> {t('modCard.catWorkshop')}
+          </span>
         )}
         {mod.dependencies && mod.dependencies.length > 0 && (
           <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${missingDeps.length > 0 ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'}`}>

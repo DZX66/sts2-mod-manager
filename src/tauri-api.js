@@ -55,8 +55,8 @@ window.api = {
 
   // Mods
   scanMods: () => invoke('mods_scan'),
-  toggleMod: (modInfo) => invoke('mods_toggle', { modInfo: { isFolder: modInfo.isFolder, folderName: modInfo.folderName, files: modInfo.files, enabled: modInfo.enabled } }),
-  uninstallMod: (modInfo) => invoke('mods_uninstall', { modInfo: { isFolder: modInfo.isFolder, folderName: modInfo.folderName, files: modInfo.files, enabled: modInfo.enabled } }),
+  toggleMod: (modInfo) => invoke('mods_toggle', { modInfo: { isFolder: modInfo.isFolder, folderName: modInfo.folderName, files: modInfo.files, enabled: !modInfo.enabled, modId: modInfo.id, modType: modInfo.modType } }),
+  uninstallMod: (modInfo) => invoke('mods_uninstall', { modInfo: { isFolder: modInfo.isFolder, folderName: modInfo.folderName, files: modInfo.files, enabled: modInfo.enabled, modId: modInfo.id, modType: modInfo.modType } }),
   installMod: () => invoke('mods_install'),
   installDrop: (filePaths) => invoke('mods_install_drop', { filePaths }),
   backupMods: () => invoke('mods_backup'),
@@ -100,6 +100,10 @@ window.api = {
   // Mod notes
   loadModNotes: () => invoke('mods_notes_load'),
   saveModNotes: (data) => invoke('mods_notes_save', { data }),
+
+  // Steam Workshop
+  getSteamUsers: () => invoke('steam_get_users'),
+  selectSteamUser: (steamId) => invoke('steam_select_user', { steamId }),
 
   // Saves
   scanSaves: () => invoke('saves_scan'),
