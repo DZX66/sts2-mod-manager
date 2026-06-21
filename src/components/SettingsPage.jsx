@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu, Cloud, FolderOpen } from 'lucide-react';
+import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu, Cloud, FolderOpen, Download } from 'lucide-react';
 import { useT } from '../i18n/I18nContext';
 
 export default function SettingsPage() {
@@ -11,6 +11,7 @@ export default function SettingsPage() {
   const [steamUsers, setSteamUsers] = useState([]);
   const [selectedSteamId, setSelectedSteamId] = useState(null);
   const [workshopPath, setWorkshopPath] = useState(null);
+  const [updateStatus, setUpdateStatus] = useState(null); // null | 'checking' | 'up-to-date' | { version: string, url: string } | 'failed'
 
   useEffect(() => {
     (async () => {
@@ -18,7 +19,7 @@ export default function SettingsPage() {
       const info = await window.api.init();
       if (info.gamePath) setGamePath(info.gamePath);
       
-      const v = await window.api.getAppVersion().catch(() => '1.2.0');
+      const v = await window.api.getAppVersion().catch(() => '1.3.0');
       setAppVersion(v);
       
       // 从 init 结果中直接获取 smartInstall 状态
@@ -90,6 +91,25 @@ export default function SettingsPage() {
       await window.api.setConfig(cfg);
     } catch (e) {
       console.error('Failed to save config:', e);
+    }
+  };
+
+  const handleCheckUpdate = async () => {
+    setUpdateStatus('checking');
+    try {
+      const res = await fetch('https://api.github.com/repos/DZX66/sts2-mod-manager/releases/latest');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const latestVersion = data.tag_name.replace(/^v/, '');
+      const currentVersion = appVersion.replace(/^v/, '');
+      if (latestVersion === currentVersion) {
+        setUpdateStatus('up-to-date');
+      } else {
+        setUpdateStatus({ version: latestVersion, url: data.html_url });
+      }
+    } catch (e) {
+      console.error('Check update failed:', e);
+      setUpdateStatus('failed');
     }
   };
 
@@ -280,6 +300,28 @@ export default function SettingsPage() {
               <span className="text-sm text-gray-500 dark:text-gray-400">{t('settings.appVersion')}</span>
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">v{appVersion}</span>
             </div>
+            <button onClick={handleCheckUpdate}
+              disabled={updateStatus === 'checking'}
+              className="w-full flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group disabled:opacity-50">
+              <div className="flex items-center gap-2">
+                <Download size={16} className="text-gray-400" />
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {updateStatus === 'checking' ? t('settings.checkingUpdate') :
+                   updateStatus === 'up-to-date' ? t('settings.upToDate') :
+                   updateStatus && typeof updateStatus === 'object' ? t('settings.updateAvailable', { version: updateStatus.version }) :
+                   updateStatus === 'failed' ? t('settings.checkUpdateFailed') :
+                   t('settings.checkUpdate')}
+                </span>
+              </div>
+              {updateStatus && typeof updateStatus === 'object' && updateStatus.url ? (
+                <button onClick={(e) => { e.stopPropagation(); window.api.openUrl && window.api.openUrl(updateStatus.url); }}
+                  className="px-2 py-1 text-[11px] font-medium bg-gray-900 text-white rounded-md hover:bg-gray-800">
+                  {t('settings.downloadPage')}
+                </button>
+              ) : (
+                <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+              )}
+            </button>
             <button onClick={() => window.api.openUrl && window.api.openUrl('https://github.com/ImogeneOctaviap794/sts2-mod-manager')}
               className="w-full flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
               <div className="flex items-center gap-2">

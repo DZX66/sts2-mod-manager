@@ -58,7 +58,6 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [gameState, setGameState] = useState('idle');
-  const [crashReport, setCrashReport] = useState(null);
   const [gameVersion, setGameVersion] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('name');
@@ -69,6 +68,7 @@ export default function App() {
   const [missingModsDialog, setMissingModsDialog] = useState(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showSearchHelp, setShowSearchHelp] = useState(false);
+  const [showWorkshopWarning, setShowWorkshopWarning] = useState(false);
   const [translations, setTranslations] = useState({});
   const [loadOrder, setLoadOrder] = useState([]);
   const [loadOrderInitialized, setLoadOrderInitialized] = useState(false);
@@ -102,17 +102,26 @@ export default function App() {
   useEffect(() => {
     window.api.getGameState().then(setGameState);
     window.api.onGameStateChanged((state) => setGameState(state));
-    window.api.onGameExited(async (info) => {
-      const v = await window.api.getGameVersion();
-      if (v.version) setGameVersion(v.version);
-      const report = await window.api.analyzeCrash();
-      if (report && (report.issues.length > 0 || report.errorCount > 0)) {
-        setCrashReport(report);
-      }
-    });
     window.api.loadProfiles().then(setProfiles);
     if (window.api.loadTranslations) window.api.loadTranslations().then(setTranslations);
   }, []);
+
+  // Auto-refresh mods on window focus regain
+  useEffect(() => {
+    const onFocus = () => { refreshMods(); };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [refreshMods]);
+
+  // Show workshop warning if workshop mods exist and not dismissed
+  useEffect(() => {
+    if (mods.length > 0 && !localStorage.getItem('sts2-workshop-warning-dismissed')) {
+      const hasWorkshop = mods.some(m => m.modType === 'steam_workshop');
+      if (hasWorkshop) {
+        setShowWorkshopWarning(true);
+      }
+    }
+  }, [mods]);
 
   const handleLaunchGame = async () => {
     if (gameState !== 'idle') return;
@@ -455,6 +464,8 @@ export default function App() {
     for (const tag of searchTags) {
       if (tag === 'framework') {
         if (!isFramework(m)) return false;
+      } else if (tag === 'resource') {
+        if (isFramework(m) || m.affects_gameplay) return false;
       } else if (tag === 'missingdeps' || tag === 'dep') {
         if (!hasMissingDeps(m)) return false;
       } else if (TAG_FILTERS[tag]) {
@@ -611,23 +622,24 @@ export default function App() {
                     {showSearchHelp && (
                       <div className="absolute left-0 top-full mt-1 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-xs font-semibold text-gray-400 uppercase">搜索标签帮助</p>
+                          <p className="text-xs font-semibold text-gray-400 uppercase">{t('mods.searchHelpTitle')}</p>
                           <button onClick={() => setShowSearchHelp(false)} className="text-gray-400 hover:text-gray-600">
                             <X size={14} />
                           </button>
                         </div>
                         <div className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
-                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#workshop</code> 筛选创意工坊 MOD</p>
-                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#local</code> 筛选本地 MOD</p>
-                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#enabled / #disabled</code> 筛选启用/禁用状态</p>
-                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#dll / #pck</code> 筛选有 DLL/PCK 文件的 MOD</p>
-                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#gameplay</code> 筛选影响玩法的 MOD</p>
-                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#folder / #file</code> 文件夹/单文件 MOD</p>
-                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#framework</code> 框架类 MOD</p>
-                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#missingdeps</code> 有缺失依赖的 MOD</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#workshop</code> {t('mods.searchHelpWorkshop')}</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#local</code> {t('mods.searchHelpLocal')}</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#enabled / #disabled</code> {t('mods.searchHelpEnabledDisabled')}</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#dll / #pck</code> {t('mods.searchHelpDllPck')}</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#gameplay</code> {t('mods.searchHelpGameplay')}</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#folder / #file</code> {t('mods.searchHelpFolderFile')}</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#framework</code> {t('mods.searchHelpFramework')}</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#resource</code> {t('mods.searchHelpResource')}</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#missingdeps</code> {t('mods.searchHelpMissingDeps')}</p>
                           <div className="border-t border-gray-100 dark:border-gray-700 pt-2 mt-2">
-                            <p className="text-gray-400">多个标签组合：<code className="text-[11px]">#workshop #enabled</code></p>
-                            <p className="text-gray-400">标签后加文字：<code className="text-[11px]">#workshop 地图</code></p>
+                            <p className="text-gray-400">{t('mods.searchHelpCombine')}<code className="text-[11px]">{t('mods.searchHelpCombineText')}</code></p>
+                            <p className="text-gray-400">{t('mods.searchHelpSearch')}<code className="text-[11px]">{t('mods.searchHelpSearchText')}</code></p>
                           </div>
                         </div>
                       </div>
@@ -915,96 +927,29 @@ export default function App() {
         <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
       )}
 
-      {crashReport && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setCrashReport(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-[480px] max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
-                  <AlertTriangle size={20} className="text-amber-500" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">{t('crashDialog.title')}</h3>
-                  <p className="text-xs text-gray-400">{crashReport.logFile}</p>
-                </div>
+      {showWorkshopWarning && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowWorkshopWarning(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[480px] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
+              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+                <AlertTriangle size={20} className="text-amber-500" />
               </div>
-              <button onClick={() => setCrashReport(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <X size={18} />
-              </button>
+              <h3 className="font-bold text-gray-900">{t('mods.workshopWarningTitle')}</h3>
             </div>
-            <div className="px-6 py-4 overflow-y-auto max-h-[60vh] space-y-4">
-              <div className="flex gap-3">
-                <div className="flex-1 bg-red-50 rounded-lg px-3 py-2 text-center">
-                  <p className="text-lg font-bold text-red-600">{crashReport.errorCount}</p>
-                  <p className="text-[10px] text-red-400 uppercase font-semibold">{t('crashDialog.errors')}</p>
-                </div>
-                <div className="flex-1 bg-amber-50 rounded-lg px-3 py-2 text-center">
-                  <p className="text-lg font-bold text-amber-600">{crashReport.warnCount}</p>
-                  <p className="text-[10px] text-amber-400 uppercase font-semibold">{t('crashDialog.warnings')}</p>
-                </div>
-              </div>
-              {crashReport.issues.length > 0 ? (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase">{t('crashDialog.detectedIssues')}</p>
-                  {crashReport.issues.map((issue, i) => (
-                    <div key={i} className="bg-gray-50 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <AlertTriangle size={14} className="text-amber-500" />
-                        <span className="text-sm font-semibold text-gray-800">{issue.reason}</span>
-                      </div>
-                      <p className="text-xs text-gray-500 leading-relaxed pl-[22px]">{issue.detail}</p>
-                      {issue.mods && issue.mods.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2 pl-[22px]">
-                          {issue.mods.map(m => (
-                            <span key={m} className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">{m}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-gray-50 rounded-xl p-4 text-center">
-                  <Info size={20} className="mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm text-gray-500">{t('crashDialog.noIssuesDetected')}</p>
-                  <p className="text-xs text-gray-400 mt-1">{t('crashDialog.noIssuesHint')}</p>
-                </div>
-              )}
-              {crashReport.involvedMods && crashReport.involvedMods.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase">{t('crashDialog.involvedMods')}</p>
-                  {crashReport.involvedMods.map((mod, i) => (
-                    <div key={i} className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-3">
-                      <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-xs font-bold text-red-500">{mod.errorCount}</span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-800">{mod.name}</p>
-                        <p className="text-[11px] text-gray-400 truncate">{mod.sample}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {crashReport.notices && crashReport.notices.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase mb-2">{t('crashDialog.harmlessNotices')}</p>
-                  <div className="bg-blue-50 rounded-lg px-4 py-3 space-y-1">
-                    {crashReport.notices.map((n, i) => (
-                      <p key={i} className="text-[11px] text-blue-600">{n}</p>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div className="px-6 py-4">
+              <p className="text-sm text-gray-600 leading-relaxed">{t('mods.workshopWarningMessage')}</p>
             </div>
             <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
-              <button onClick={() => { setCrashReport(null); setPage('logs'); }}
-                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors">
-                {t('crashDialog.viewFullLog')}
+              <button onClick={() => {
+                localStorage.setItem('sts2-workshop-warning-dismissed', 'true');
+                setShowWorkshopWarning(false);
+              }}
+                className="px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+                {t('mods.workshopWarningDontShow')}
               </button>
-              <button onClick={() => setCrashReport(null)}
-                className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
-                {t('crashDialog.close')}
+              <button onClick={() => setShowWorkshopWarning(false)}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors">
+                {t('confirmDialog.confirm')}
               </button>
             </div>
           </div>

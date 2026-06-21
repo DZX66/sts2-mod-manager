@@ -104,7 +104,24 @@
     "profileNoProfiles": "No profiles yet",
     "profileModsCount": "{count} MOD(s)",
     "profileApply": "Apply",
-    "dragZipError": "Please drag & drop .zip files or MOD folders"
+    "dragZipError": "Please drag & drop .zip files or MOD folders",
+    "workshopWarningTitle": "Workshop MOD Detected",
+    "workshopWarningMessage": "This manager is not compatible with Steam Workshop management features. Please do not use Steam Workshop to manage these MODs.",
+    "workshopWarningDontShow": "Don't show again",
+    "searchHelpTitle": "Search Tags Help",
+    "searchHelpWorkshop": "Filter workshop MODs",
+    "searchHelpLocal": "Filter local MODs",
+    "searchHelpEnabledDisabled": "Filter enabled/disabled state",
+    "searchHelpDllPck": "Filter MODs with DLL/PCK files",
+    "searchHelpGameplay": "Filter MODs affecting gameplay",
+    "searchHelpFolderFile": "Folder/single-file MODs",
+    "searchHelpFramework": "Framework MODs",
+    "searchHelpMissingDeps": "MODs with missing dependencies",
+    "searchHelpResource": "Resource MODs",
+    "searchHelpCombine": "Combine multiple tags:",
+    "searchHelpCombineText": "#workshop #enabled",
+    "searchHelpSearch": "Search text after tags:",
+    "searchHelpSearchText": "#workshop map"
   },
   "modCard": {
     "missingDeps": "Missing dependencies, won't work: {deps}",
@@ -238,7 +255,13 @@
     "smartInstall": "Smart Install",
     "smartInstallDesc": "Extraction mode when installing MODs",
     "smartInstallLabel": "Smart mode (auto-create folders, enabled by default)",
-    "github": "Upstream GitHub"
+    "github": "Upstream GitHub",
+    "checkUpdate": "Check for Updates",
+    "checkingUpdate": "Checking...",
+    "upToDate": "Already up to date",
+    "updateAvailable": "New version {version} available",
+    "checkUpdateFailed": "Failed to check for updates",
+    "downloadPage": "Go to download page"
   },
   "crashDialog": {
     "title": "Game Exit Analysis",

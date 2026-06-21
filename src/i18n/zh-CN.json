@@ -104,7 +104,24 @@
     "profileNoProfiles": "暂无配置",
     "profileModsCount": "{count} 个 MOD",
     "profileApply": "应用",
-    "dragZipError": "请拖入 .zip 压缩包或 MOD 文件夹"
+    "dragZipError": "请拖入 .zip 压缩包或 MOD 文件夹",
+    "workshopWarningTitle": "检测到创意工坊 MOD",
+    "workshopWarningMessage": "此管理器与 Steam 创意工坊的管理功能不兼容，请不要使用 Steam 创意工坊的管理功能。",
+    "workshopWarningDontShow": "不再提示",
+    "searchHelpTitle": "搜索标签帮助",
+    "searchHelpWorkshop": "筛选创意工坊 MOD",
+    "searchHelpLocal": "筛选本地 MOD",
+    "searchHelpEnabledDisabled": "筛选启用/禁用状态",
+    "searchHelpDllPck": "筛选有 DLL/PCK 文件的 MOD",
+    "searchHelpGameplay": "筛选影响玩法的 MOD",
+    "searchHelpFolderFile": "文件夹/单文件 MOD",
+    "searchHelpFramework": "框架类 MOD",
+    "searchHelpMissingDeps": "有缺失依赖的 MOD",
+    "searchHelpResource": "资源类 MOD",
+    "searchHelpCombine": "多个标签组合：",
+    "searchHelpCombineText": "#workshop #enabled",
+    "searchHelpSearch": "标签后加文字：",
+    "searchHelpSearchText": "#workshop 地图"
   },
   "modCard": {
     "missingDeps": "缺失依赖，无法正常工作：{deps}",
@@ -238,7 +255,13 @@
     "smartInstall": "智能安装",
     "smartInstallDesc": "安装 MOD 时的解压方式",
     "smartInstallLabel": "智能模式（自动创建文件夹，默认开启）",
-    "github": "上游 GitHub"
+    "github": "上游 GitHub",
+    "checkUpdate": "检查更新",
+    "checkingUpdate": "检查中...",
+    "upToDate": "已是最新版本",
+    "updateAvailable": "发现新版本 {version}",
+    "checkUpdateFailed": "检查更新失败",
+    "downloadPage": "前往下载页面"
   },
   "crashDialog": {
     "title": "游戏退出分析",

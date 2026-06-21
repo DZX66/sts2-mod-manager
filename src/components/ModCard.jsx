@@ -19,9 +19,9 @@ function getMissingDeps(mod, allMods) {
 
 function getModCategory(mod, allMods, t) {
   const isDepForOthers = allMods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.some(d => d.id === mod.id));
-  if (isDepForOthers) return { label: t('modCard.catFramework'), color: 'bg-indigo-50 text-indigo-600', icon: Shield };
-  if (mod.affects_gameplay) return { label: t('modCard.catGameplay'), color: 'bg-amber-50 text-amber-700', icon: Gamepad2 };
-  return { label: t('modCard.catResource'), color: 'bg-teal-50 text-teal-600', icon: Palette };
+  if (isDepForOthers) return { type: 'framework', label: t('modCard.catFramework'), color: 'bg-indigo-50 text-indigo-600', icon: Shield };
+  if (mod.affects_gameplay) return { type: 'gameplay', label: t('modCard.catGameplay'), color: 'bg-amber-50 text-amber-700', icon: Gamepad2 };
+  return { type: 'resource', label: t('modCard.catResource'), color: 'bg-teal-50 text-teal-600', icon: Palette };
 }
 
 export default function ModCard({ mod, allMods, translations, onToggle, onClick, selected, gameVersion }) {
@@ -87,8 +87,10 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${category.color}`}>
           <CategoryIcon size={11} /> {category.label}
         </span>
-        {!mod.enabled && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{t('modCard.disabled')}</span>
+        {category.type === 'framework' && mod.affects_gameplay && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700">
+            <Gamepad2 size={11} /> {t('modCard.catGameplayShort')}
+          </span>
         )}
         {mod.has_dll && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-600">DLL</span>
