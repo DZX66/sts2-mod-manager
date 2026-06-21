@@ -40,6 +40,13 @@ export default function SettingsPage() {
     })();
   }, []);
 
+  // Auto-check for updates on mount
+  useEffect(() => {
+    if (appVersion) {
+      handleCheckUpdate();
+    }
+  }, [appVersion]);
+
   const loadSteamUsers = async () => {
     try {
       const result = await window.api.getSteamUsers();
