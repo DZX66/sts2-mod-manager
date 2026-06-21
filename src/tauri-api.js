@@ -98,6 +98,17 @@ window.api = {
   loadTranslations: () => invoke('translations_load'),
   saveTranslations: (data) => invoke('translations_save', { data }),
 
+  // Load Order
+  getLoadOrder: () => invoke('load_order_get'),
+  setLoadOrder: (order) => invoke('load_order_set', { order }),
+  smartSortLoadOrder: () => invoke('load_order_smart_sort'),
+  exportLoadOrder: (orderStr) => invoke('load_order_export', { orderStr }),
+  importLoadOrder: (jsonStr) => invoke('load_order_import', { jsonStr }),
+  exportLoadOrderFile: (orderStr) => invoke('load_order_export_file', { orderStr }),
+  importLoadOrderFile: () => invoke('load_order_import_file'),
+  writeLoadOrderToSettings: () => invoke('load_order_write_to_settings'),
+  getLoadOrderEnabledIds: () => invoke('load_order_get_enabled_ids'),
+
   // Mod notes
   loadModNotes: () => invoke('mods_notes_load'),
   saveModNotes: (data) => invoke('mods_notes_save', { data }),

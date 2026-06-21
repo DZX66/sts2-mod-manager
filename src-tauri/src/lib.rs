@@ -1,5 +1,6 @@
 mod config;
 mod game;
+mod load_order;
 mod logs;
 mod mods;
 mod notes;
@@ -70,6 +71,16 @@ pub fn run() {
             // Mod notes
             notes::mods_notes_load,
             notes::mods_notes_save,
+            // Load Order
+            load_order::load_order_get,
+            load_order::load_order_set,
+            load_order::load_order_smart_sort,
+            load_order::load_order_export,
+            load_order::load_order_export_file,
+            load_order::load_order_import,
+            load_order::load_order_import_file,
+            load_order::load_order_write_to_settings,
+            load_order::load_order_get_enabled_ids,
             // Steam
             mods::steam_get_users,
             mods::steam_select_user,

@@ -310,6 +310,10 @@ pub fn workshop_to_modinfo(ws: &WorkshopModInfo) -> crate::mods::ModInfo {
     // Calculate size by scanning the folder
     let size = dir_size(Path::new(&ws.path));
 
+    // Scan for DLL and PCK files in the workshop mod folder
+    let has_dll = scan_for_files(Path::new(&ws.path), ".dll");
+    let has_pck = scan_for_files(Path::new(&ws.path), ".pck");
+
     crate::mods::ModInfo {
         id: ws.id.clone(),
         name: ws.name.clone(),
@@ -317,19 +321,39 @@ pub fn workshop_to_modinfo(ws: &WorkshopModInfo) -> crate::mods::ModInfo {
         version: ws.version.clone(),
         description: ws.description.clone(),
         dependencies: None,
-        affects_gameplay: None,
+        affects_gameplay: None, // Let smart sort decide purely from file types
         min_game_version: None,
-        has_dll: Some(false),
-        has_pck: Some(false),
+        has_dll: Some(has_dll),
+        has_pck: Some(has_pck),
         enabled: ws.enabled,
         instance_key: format!("steam_workshop::{}", ws.folder_name),
         folder_name: ws.folder_name.clone(),
         is_folder: true,
         path: ws.path.clone(),
-        files: vec![], // Will be filled if needed
+        files: vec![],
         size,
         mod_type: Some("steam_workshop".to_string()),
     }
+}
+
+/// Scan a directory recursively for files with a given extension (".dll" or ".pck")
+fn scan_for_files(dir: &Path, ext: &str) -> bool {
+    let target = if ext == ".dll" { "dll" } else { "pck" };
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                if scan_for_files(&path, ext) {
+                    return true;
+                }
+            } else if let Some(e) = path.extension() {
+                if e == target {
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }
 
 fn dir_size(path: &Path) -> u64 {

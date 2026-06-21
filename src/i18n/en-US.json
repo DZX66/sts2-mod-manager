@@ -5,6 +5,7 @@
   "nav": {
     "nav": "Navigation",
     "mods": "Mods",
+    "loadOrder": "Load Order",
     "saves": "Saves",
     "logs": "Game Logs",
     "settings": "Settings",
@@ -270,6 +271,30 @@
     "defect": "Defect",
     "regent": "Regent",
     "necrobinder": "Necrobinder"
+  },
+  "loadOrder": {
+    "title": "Load Order",
+    "summary": "{count} enabled MODs",
+    "smartSort": "Smart Sort",
+    "smartSortDone": "Smart sort complete",
+    "writeSettings": "Write to settings.save",
+    "writeSettingsToggle": "Write to settings.save when launching the game",
+    "writeSettingsOn": "Enabled — will write mod_list to settings.save when launching the game",
+    "writeSettingsOff": "Disabled — will not write to settings.save when launching the game",
+    "writtenToSettings": "Load order written to settings.save",
+    "export": "Export",
+    "import": "Import",
+    "exported": "Load order exported to file",
+    "imported": "Load order imported from file",
+    "importPrompt": "Paste load order JSON data:",
+    "dragHint": "Drag MODs to reorder",
+    "smartSortError": "Smart sort failed",
+    "writeSettingsError": "Failed to write to settings.save",
+    "exportError": "Export failed",
+    "importError": "Import failed",
+    "noEnabledMods": "No enabled MODs",
+    "noEnabledModsHint": "Enable some MODs in the Mods page first",
+    "hashNote": "Note: Load order affects MOD hash value. Different hash values prevent online play."
   },
   "common": {
     "unknown": "Unknown",

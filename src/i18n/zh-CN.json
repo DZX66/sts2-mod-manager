@@ -5,6 +5,7 @@
   "nav": {
     "nav": "导航",
     "mods": "MOD 管理",
+    "loadOrder": "加载顺序",
     "saves": "存档管理",
     "logs": "游戏日志",
     "settings": "设置",
@@ -270,6 +271,30 @@
     "defect": "故障机器人",
     "regent": "储君",
     "necrobinder": "亡灵契约师"
+  },
+  "loadOrder": {
+    "title": "加载顺序",
+    "summary": "共 {count} 个已启用 MOD",
+    "smartSort": "智能排序",
+    "smartSortDone": "智能排序完成",
+    "writeSettings": "写入 settings.save",
+    "writeSettingsToggle": "启动时写入 settings.save",
+    "writeSettingsOn": "已启用 — 启动游戏时会自动写入 settings.save 的 mod_list",
+    "writeSettingsOff": "已禁用 — 不会自动写入 settings.save",
+    "writtenToSettings": "加载顺序已写入 settings.save",
+    "export": "导出",
+    "import": "导入",
+    "exported": "加载顺序已导出到文件",
+    "imported": "加载顺序已从文件导入",
+    "importPrompt": "粘贴加载顺序 JSON 数据：",
+    "dragHint": "拖拽 MOD 来调整加载顺序",
+    "smartSortError": "智能排序失败",
+    "writeSettingsError": "写入 settings.save 失败",
+    "exportError": "导出失败",
+    "importError": "导入失败",
+    "noEnabledMods": "没有已启用的 MOD",
+    "noEnabledModsHint": "先到 MOD 管理页面启用一些 MOD",
+    "hashNote": "注：加载顺序会影响 MOD hash 值，hash 值不同无法联机"
   },
   "common": {
     "unknown": "未知",

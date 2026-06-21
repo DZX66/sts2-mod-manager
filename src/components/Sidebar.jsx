@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Package, FileText, FolderOpen, Save, HardDrive, ExternalLink, Github, Settings,
+  Package, FileText, FolderOpen, Save, HardDrive, ExternalLink, Github, Settings, ArrowUpDown,
 } from 'lucide-react';
 import { useT } from '../i18n/I18nContext';
 
@@ -9,6 +9,7 @@ export default function Sidebar({ page, setPage, gamePath, onSelectGamePath, ena
 
   const navItems = [
     { id: 'mods', icon: Package, label: t('nav.mods') },
+    { id: 'loadorder', icon: ArrowUpDown, label: t('nav.loadOrder') },
     { id: 'saves', icon: HardDrive, label: t('nav.saves') },
     { id: 'logs', icon: FileText, label: t('nav.logs') },
     { id: 'settings', icon: Settings, label: t('nav.settings') },

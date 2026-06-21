@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import ModCard from './components/ModCard';
 import ModListItem from './components/ModListItem';
 import ModDetail from './components/ModDetail';
+import ModLoadOrder from './components/ModLoadOrder';
 import LogViewer from './components/LogViewer';
 import SettingsPage from './components/SettingsPage';
 import SaveManager from './components/SaveManager';
@@ -69,6 +70,34 @@ export default function App() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showSearchHelp, setShowSearchHelp] = useState(false);
   const [translations, setTranslations] = useState({});
+  const [loadOrder, setLoadOrder] = useState([]);
+  const [loadOrderInitialized, setLoadOrderInitialized] = useState(false);
+
+  // Initialize load order once
+  useEffect(() => {
+    if (!loadOrderInitialized && mods.length > 0) {
+      (async () => {
+        try {
+          const result = await window.api.getLoadOrder();
+          if (result.success && result.load_order) {
+            const enabledIds = mods.filter(m => m.enabled && m.id).map(m => m.id);
+            const validOrder = result.load_order.filter(id => enabledIds.includes(id));
+            // Add any enabled mods not yet in order
+            for (const id of enabledIds) {
+              if (!validOrder.includes(id)) validOrder.push(id);
+            }
+            setLoadOrder(validOrder);
+          } else {
+            // Default to alphabetical
+            setLoadOrder(mods.filter(m => m.enabled && m.id).map(m => m.id).sort((a, b) => a.localeCompare(b)));
+          }
+        } catch (e) {
+          console.error('Failed to init load order:', e);
+        }
+        setLoadOrderInitialized(true);
+      })();
+    }
+  }, [mods, loadOrderInitialized]);
 
   useEffect(() => {
     window.api.getGameState().then(setGameState);
@@ -87,6 +116,17 @@ export default function App() {
 
   const handleLaunchGame = async () => {
     if (gameState !== 'idle') return;
+    
+    // Auto-write load order to settings.save if enabled
+    const writePref = localStorage.getItem('sts2-load-order-write-settings');
+    if (writePref !== 'false') {
+      try {
+        await window.api.writeLoadOrderToSettings();
+      } catch (e) {
+        console.error('Failed to write load order to settings:', e);
+      }
+    }
+    
     const result = await window.api.launchGame();
     if (!result.success && result.error) showToast(result.error, 'error');
   };
@@ -232,7 +272,7 @@ export default function App() {
         snapshot[m.id] = { version: m.version || null, enabled: true };
       }
     });
-    const updated = { ...profiles, [name]: { snapshot, savedAt: new Date().toISOString() } };
+    const updated = { ...profiles, [name]: { snapshot, loadOrder: [...loadOrder], savedAt: new Date().toISOString() } };
     await window.api.saveProfiles(updated);
     setProfiles(updated);
     setNewProfileName('');
@@ -266,6 +306,18 @@ export default function App() {
           await window.api.toggleMod(mod);
         }
       }
+    }
+
+    // Restore load order from profile if available
+    if (profile.loadOrder && profile.loadOrder.length > 0) {
+      const enabledIds = mods.filter(m => m.enabled && m.id).map(m => m.id);
+      const validOrder = profile.loadOrder.filter(id => enabledIds.includes(id));
+      // Add any enabled mods not yet in order
+      for (const id of enabledIds) {
+        if (!validOrder.includes(id)) validOrder.push(id);
+      }
+      await window.api.setLoadOrder(validOrder);
+      setLoadOrder(validOrder);
     }
   };
 
@@ -837,6 +889,13 @@ export default function App() {
           {page === 'saves' && <SaveManager />}
           {page === 'logs' && <LogViewer />}
           {page === 'settings' && <SettingsPage />}
+          {page === 'loadorder' && (
+            <ModLoadOrder
+              mods={mods}
+              loadOrder={loadOrder}
+              setLoadOrder={setLoadOrder}
+            />
+          )}
         </main>
       </div>
 
