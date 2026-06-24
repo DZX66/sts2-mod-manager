@@ -120,7 +120,8 @@ fn detect_game_path() -> Option<String> {
 }
 
 #[tauri::command]
-pub fn app_get_version(config: tauri::Config) -> String {
+pub fn app_get_version(app_handle: tauri::AppHandle) -> String {
+    let config = app_handle.config();
     config.version.clone().unwrap_or_else(|| "1.0.0".to_string())
 }
 

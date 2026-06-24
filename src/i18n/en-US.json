@@ -284,6 +284,13 @@
     "ignore": "Ignore & Apply",
     "updateProfile": "Update Profile"
   },
+  "updateDialog": {
+    "title": "Update Available",
+    "message": "A new version v{version} is available. Would you like to go to GitHub to download the update?",
+    "openRelease": "Go to Download Page",
+    "dismissVersion": "Skip This Version",
+    "later": "Remind Me Later"
+  },
   "confirmDialog": {
     "confirm": "Confirm",
     "cancel": "Cancel"

@@ -284,6 +284,13 @@
     "ignore": "忽略，继续应用",
     "updateProfile": "更新配置"
   },
+  "updateDialog": {
+    "title": "发现新版本",
+    "message": "新版本 v{version} 已发布，是否前往 GitHub 下载更新？",
+    "openRelease": "前往下载页面",
+    "dismissVersion": "忽略此版本",
+    "later": "以后再说"
+  },
   "confirmDialog": {
     "confirm": "确认",
     "cancel": "取消"

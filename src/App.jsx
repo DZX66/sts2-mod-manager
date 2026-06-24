@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import workshopWarningImage from './assets/workshop_manager.webp';
 import Sidebar from './components/Sidebar';
 import ModCard from './components/ModCard';
 import ModListItem from './components/ModListItem';
@@ -72,6 +73,8 @@ export default function App() {
   const [translations, setTranslations] = useState({});
   const [loadOrder, setLoadOrder] = useState([]);
   const [loadOrderInitialized, setLoadOrderInitialized] = useState(false);
+  const [appVersion, setAppVersion] = useState('');
+  const [updateDialog, setUpdateDialog] = useState(null); // { version, url } or null
 
   // Initialize load order once
   useEffect(() => {
@@ -172,6 +175,38 @@ export default function App() {
       if (v.version) setGameVersion(v.version);
     })();
   }, [syncMods]);
+
+  // Fetch app version & check for updates
+  useEffect(() => {
+    (async () => {
+      try {
+        const ver = await window.api.getAppVersion().catch(() => '1.0.0');
+        setAppVersion(ver);
+      } catch (e) {
+        setAppVersion('1.0.0');
+      }
+    })();
+  }, []);
+
+  // Check for updates on mount (only if not dismissed)
+  useEffect(() => {
+    if (!appVersion) return;
+    if (localStorage.getItem('sts2-update-dismissed')) return;
+    (async () => {
+      try {
+        const res = await fetch('https://api.github.com/repos/DZX66/sts2-mod-manager/releases/latest');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const latestVersion = data.tag_name.replace(/^v/, '');
+        const currentVersion = appVersion.replace(/^v/, '');
+        if (latestVersion !== currentVersion) {
+          setUpdateDialog({ version: latestVersion, url: data.html_url });
+        }
+      } catch (e) {
+        console.error('Update check failed:', e);
+      }
+    })();
+  }, [appVersion]);
 
   const handleSelectGamePath = async () => {
     const info = await window.api.selectGamePath();
@@ -929,15 +964,22 @@ export default function App() {
 
       {showWorkshopWarning && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowWorkshopWarning(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-[480px] overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[520px] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
               <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
                 <AlertTriangle size={20} className="text-amber-500" />
               </div>
               <h3 className="font-bold text-gray-900">{t('mods.workshopWarningTitle')}</h3>
             </div>
-            <div className="px-6 py-4">
-              <p className="text-sm text-gray-600 leading-relaxed">{t('mods.workshopWarningMessage')}</p>
+            <div className="px-6 py-4 flex items-start gap-4">
+              <img
+                src={workshopWarningImage}
+                alt="Workshop Manager"
+                className="w-44 h-auto rounded-xl flex-shrink-0 border border-gray-200"
+              />
+              <div>
+                <p className="text-sm text-gray-600 leading-relaxed">{t('mods.workshopWarningMessage')}</p>
+              </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
               <button onClick={() => {
@@ -950,6 +992,42 @@ export default function App() {
               <button onClick={() => setShowWorkshopWarning(false)}
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors">
                 {t('confirmDialog.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {updateDialog && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setUpdateDialog(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[480px] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
+              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                <Download size={20} className="text-blue-500" />
+              </div>
+              <h3 className="font-bold text-gray-900">{t('updateDialog.title')}</h3>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-sm text-gray-600 leading-relaxed">{t('updateDialog.message', { version: updateDialog.version })}</p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
+              <button onClick={() => {
+                window.api.openUrl && window.api.openUrl(updateDialog.url);
+                setUpdateDialog(null);
+              }}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors">
+                {t('updateDialog.openRelease')}
+              </button>
+              <button onClick={() => {
+                localStorage.setItem('sts2-update-dismissed', 'true');
+                setUpdateDialog(null);
+              }}
+                className="px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+                {t('updateDialog.dismissVersion')}
+              </button>
+              <button onClick={() => setUpdateDialog(null)}
+                className="px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+                {t('updateDialog.later')}
               </button>
             </div>
           </div>

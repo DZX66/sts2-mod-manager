@@ -19,7 +19,7 @@ export default function SettingsPage() {
       const info = await window.api.init();
       if (info.gamePath) setGamePath(info.gamePath);
       
-      const v = await window.api.getAppVersion().catch(() => '1.3.0');
+      const v = await window.api.getAppVersion().catch(() => '1.0.0');
       setAppVersion(v);
       
       // 从 init 结果中直接获取 smartInstall 状态
