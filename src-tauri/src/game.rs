@@ -284,29 +284,10 @@ const CRASH_PATTERNS: &[CrashPattern] = &[
 ];
 
 fn read_log_safe(path: &Path) -> String {
-    const MAX_SIZE: u64 = 512 * 1024;
     if !path.exists() {
         return String::new();
     }
-    if let Ok(meta) = path.metadata() {
-        if meta.len() <= MAX_SIZE {
-            return fs::read_to_string(path).unwrap_or_default();
-        }
-        // Read tail
-        if let Ok(content) = fs::read(path) {
-            let start = if content.len() > MAX_SIZE as usize {
-                content.len() - MAX_SIZE as usize
-            } else {
-                0
-            };
-            let text = String::from_utf8_lossy(&content[start..]).to_string();
-            if let Some(nl) = text.find('\n') {
-                return format!("[... 日志过长，仅显示末尾部分 ...]\n{}", &text[nl + 1..]);
-            }
-            return text;
-        }
-    }
-    String::new()
+    fs::read_to_string(path).unwrap_or_default()
 }
 
 #[tauri::command]

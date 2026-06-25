@@ -35,6 +35,9 @@ pub struct WorkshopModInfo {
     pub author: Option<String>,
     pub version: Option<String>,
     pub description: Option<String>,
+    pub dependencies: Option<Vec<crate::mods::DependencyInfo>>,
+    pub affects_gameplay: Option<bool>,
+    pub min_game_version: Option<String>,
     pub folder_name: String,
     pub path: String,
     pub enabled: bool,
@@ -259,18 +262,43 @@ pub fn scan_workshop_mods(workshop_path: &str, known_entries: &[ModListEntry]) -
                             false
                         };
 
-                        mods.push(WorkshopModInfo {
-                            id: mod_id,
-                            name: content.get("name").and_then(|v| v.as_str()).map(String::from),
-                            author: content.get("author").and_then(|v| v.as_str()).map(String::from),
-                            version: content.get("version").and_then(|v| v.as_str()).map(|s| {
-                                s.strip_prefix('v').or_else(|| s.strip_prefix('V')).unwrap_or(s).to_string()
-                            }),
-                            description: content.get("description").and_then(|v| v.as_str()).map(String::from),
-                            folder_name: folder_name.clone(),
-                            path: mod_path.to_string_lossy().to_string(),
-                            enabled: is_enabled,
-                        });
+mods.push(WorkshopModInfo {
+    id: mod_id,
+    name: content.get("name").and_then(|v| v.as_str()).map(String::from),
+    author: content.get("author").and_then(|v| v.as_str()).map(String::from),
+    version: content.get("version").and_then(|v| v.as_str()).map(|s| {
+        s.strip_prefix('v').or_else(|| s.strip_prefix('V')).unwrap_or(s).to_string()
+    }),
+    description: content.get("description").and_then(|v| v.as_str()).map(String::from),
+    dependencies: content.get("dependencies").and_then(|v| {
+        v.as_array().map(|arr| {
+            arr.iter().filter_map(|item| {
+                if let Some(s) = item.as_str() {
+                    Some(crate::mods::DependencyInfo {
+                        id: s.to_string(),
+                        min_version: None,
+                    })
+                } else if let Some(obj) = item.as_object() {
+                    obj.get("id")
+                        .and_then(|v| v.as_str())
+                        .map(|id| crate::mods::DependencyInfo {
+                            id: id.to_string(),
+                            min_version: obj.get("min_version")
+                                .and_then(|v| v.as_str())
+                                .map(String::from),
+                        })
+                } else {
+                    None
+                }
+            }).collect()
+        })
+    }),
+    affects_gameplay: content.get("affects_gameplay").and_then(|v| v.as_bool()),
+    min_game_version: content.get("min_game_version").and_then(|v| v.as_str()).map(String::from),
+    folder_name: folder_name.clone(),
+    path: mod_path.to_string_lossy().to_string(),
+    enabled: is_enabled,
+});
                         // 不再 break，继续读取该文件夹中的其他有效 manifest 文件
                     }
                 }
@@ -320,9 +348,9 @@ fn read_json_file(path: &Path) -> Option<serde_json::Value> {
             author: ws.author.clone(),
             version: ws.version.clone(),
             description: ws.description.clone(),
-            dependencies: None,
-            affects_gameplay: None, // Let smart sort decide purely from file types
-            min_game_version: None,
+            dependencies: ws.dependencies.clone(),
+            affects_gameplay: ws.affects_gameplay,
+            min_game_version: ws.min_game_version.clone(),
             has_dll: Some(has_dll),
             has_pck: Some(has_pck),
             enabled: ws.enabled,
