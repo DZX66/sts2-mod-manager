@@ -65,6 +65,9 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
             {mod.author} · v{mod.version}
+            {mod.modType === 'steam_workshop' && mod.folderName && (
+              <span className="ml-1.5 font-mono opacity-60">· #{mod.folderName}</span>
+            )}
           </p>
         </div>
         <button

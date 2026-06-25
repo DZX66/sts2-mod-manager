@@ -267,11 +267,11 @@ pub fn scan_workshop_mods(workshop_path: &str, known_entries: &[ModListEntry]) -
                                 s.strip_prefix('v').or_else(|| s.strip_prefix('V')).unwrap_or(s).to_string()
                             }),
                             description: content.get("description").and_then(|v| v.as_str()).map(String::from),
-                            folder_name,
+                            folder_name: folder_name.clone(),
                             path: mod_path.to_string_lossy().to_string(),
                             enabled: is_enabled,
                         });
-                        break; // Only take the first valid manifest
+                        // 不再 break，继续读取该文件夹中的其他有效 manifest 文件
                     }
                 }
             }
@@ -306,35 +306,36 @@ fn read_json_file(path: &Path) -> Option<serde_json::Value> {
 }
 
 /// Convert a WorkshopModInfo to a full ModInfo (for merging with the mod list)
-pub fn workshop_to_modinfo(ws: &WorkshopModInfo) -> crate::mods::ModInfo {
-    // Calculate size by scanning the folder
-    let size = dir_size(Path::new(&ws.path));
+    pub fn workshop_to_modinfo(ws: &WorkshopModInfo) -> crate::mods::ModInfo {
+        // Calculate size by scanning the folder
+        let size = dir_size(Path::new(&ws.path));
 
-    // Scan for DLL and PCK files in the workshop mod folder
-    let has_dll = scan_for_files(Path::new(&ws.path), ".dll");
-    let has_pck = scan_for_files(Path::new(&ws.path), ".pck");
+        // Scan for DLL and PCK files in the workshop mod folder
+        let has_dll = scan_for_files(Path::new(&ws.path), ".dll");
+        let has_pck = scan_for_files(Path::new(&ws.path), ".pck");
 
-    crate::mods::ModInfo {
-        id: ws.id.clone(),
-        name: ws.name.clone(),
-        author: ws.author.clone(),
-        version: ws.version.clone(),
-        description: ws.description.clone(),
-        dependencies: None,
-        affects_gameplay: None, // Let smart sort decide purely from file types
-        min_game_version: None,
-        has_dll: Some(has_dll),
-        has_pck: Some(has_pck),
-        enabled: ws.enabled,
-        instance_key: format!("steam_workshop::{}", ws.folder_name),
-        folder_name: ws.folder_name.clone(),
-        is_folder: true,
-        path: ws.path.clone(),
-        files: vec![],
-        size,
-        mod_type: Some("steam_workshop".to_string()),
+        crate::mods::ModInfo {
+            id: ws.id.clone(),
+            name: ws.name.clone(),
+            author: ws.author.clone(),
+            version: ws.version.clone(),
+            description: ws.description.clone(),
+            dependencies: None,
+            affects_gameplay: None, // Let smart sort decide purely from file types
+            min_game_version: None,
+            has_dll: Some(has_dll),
+            has_pck: Some(has_pck),
+            enabled: ws.enabled,
+            // 使用 manifest id 区分同一 workshop 文件夹中的多个 mod
+            instance_key: format!("steam_workshop::{}::{}", ws.folder_name, ws.id.as_deref().unwrap_or("unknown")),
+            folder_name: ws.folder_name.clone(),
+            is_folder: true,
+            path: ws.path.clone(),
+            files: vec![],
+            size,
+            mod_type: Some("steam_workshop".to_string()),
+        }
     }
-}
 
 /// Scan a directory recursively for files with a given extension (".dll" or ".pck")
 fn scan_for_files(dir: &Path, ext: &str) -> bool {
