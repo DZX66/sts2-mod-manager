@@ -109,6 +109,10 @@ window.api = {
   writeLoadOrderToSettings: () => invoke('load_order_write_to_settings'),
   getLoadOrderEnabledIds: () => invoke('load_order_get_enabled_ids'),
 
+  // Tags
+  tagsLoad: () => invoke('tags_load'),
+  tagsSave: (data) => invoke('tags_save', { data }),
+
   // Mod notes
   loadModNotes: () => invoke('mods_notes_load'),
   saveModNotes: (data) => invoke('mods_notes_save', { data }),

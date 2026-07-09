@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ToggleLeft, ToggleRight, Trash2, AlertTriangle, FileText, Box, Code, Languages, ExternalLink, Shield, Gamepad2, Palette, StickyNote } from 'lucide-react';
+import { X, ToggleLeft, ToggleRight, Trash2, AlertTriangle, FileText, Box, Code, Languages, ExternalLink, Shield, Gamepad2, Palette, StickyNote, Tag } from 'lucide-react';
 import { getUnsatisfiedDeps, checkDepSatisfied, checkMinGameVersion } from '../utils/deps';
 import { useT } from '../i18n/I18nContext';
+import ModTags from './ModTags';
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -21,7 +22,7 @@ function getModCategory(mod, allMods, t) {
   return { label: t('modCard.catResource'), color: 'bg-teal-50 text-teal-600', icon: Palette };
 }
 
-export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall, onSelectMod, onTranslationSaved, gameVersion }) {
+export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall, onSelectMod, onTranslationSaved, onTagsChanged, gameVersion }) {
   const { t } = useT();
   const missingDeps = getUnsatisfiedDeps(mod, allMods);
   const versionOk = checkMinGameVersion(mod, gameVersion);
@@ -166,6 +167,14 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
           {translateError && (
             <p className="mt-1 text-xs text-red-400">{t('modDetail.translateFailed', { error: translateError })}</p>
           )}
+        </div>
+
+        <div>
+          <div className="flex items-center gap-1 mb-2">
+            <Tag size={13} className="text-gray-400" />
+            <p className="text-xs text-gray-400 dark:text-gray-500">{t('modDetail.customTags')}</p>
+          </div>
+          <ModTags modId={mod.id} t={t} onTagsChanged={onTagsChanged} />
         </div>
 
         <ModNotesEditor modId={mod.id} t={t} />

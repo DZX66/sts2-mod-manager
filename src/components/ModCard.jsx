@@ -1,7 +1,8 @@
-import React from 'react';
-import { ToggleLeft, ToggleRight, AlertTriangle, Blocks, Gamepad2, Palette, Shield, Cloud } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ToggleLeft, ToggleRight, AlertTriangle, Blocks, Gamepad2, Palette, Shield, Cloud, Tag } from 'lucide-react';
 import { getUnsatisfiedDeps, checkMinGameVersion } from '../utils/deps';
 import { useT } from '../i18n/I18nContext';
+import { loadTagsData, getModTags, getTagColor, getDefaultTagStyle } from './ModTags';
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -24,7 +25,7 @@ function getModCategory(mod, allMods, t) {
   return { type: 'resource', label: t('modCard.catResource'), color: 'bg-teal-50 text-teal-600', icon: Palette };
 }
 
-export default function ModCard({ mod, allMods, translations, onToggle, onClick, selected, gameVersion }) {
+export default function ModCard({ mod, allMods, translations, onToggle, onClick, selected, gameVersion, tagsData }) {
   const { t } = useT();
   const missingDeps = getMissingDeps(mod, allMods);
   const versionOk = checkMinGameVersion(mod, gameVersion);
@@ -32,6 +33,17 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
   const category = getModCategory(mod, allMods, t);
   const CategoryIcon = category.icon;
   const modT = translations && translations[mod.id];
+  const [localTagsData, setLocalTagsData] = useState(tagsData || { modTags: {}, tagColors: {} });
+
+  useEffect(() => {
+    if (!tagsData) {
+      loadTagsData().then(setLocalTagsData);
+    }
+  }, [tagsData, mod.instanceKey]);
+
+  const effectiveTagsData = tagsData || localTagsData;
+  const modTagNames = getModTags(effectiveTagsData, mod.id);
+  const tagColors = effectiveTagsData.tagColors || {};
 
   return (
     <div
@@ -82,9 +94,28 @@ export default function ModCard({ mod, allMods, translations, onToggle, onClick,
         </button>
       </div>
 
-      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-3 leading-relaxed">
+      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
         {(modT && modT.desc) || mod.description || t('modCard.noDescription')}
       </p>
+
+      {modTagNames.length > 0 && (
+        <div className="flex items-center gap-1 flex-wrap mb-2">
+          {modTagNames.map(tagName => {
+            const color = tagColors[tagName];
+            const cs = getDefaultTagStyle(color);
+            return (
+              <span
+                key={tagName}
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium"
+                style={{ backgroundColor: cs.bg, color: cs.text, border: `1px solid ${cs.border}` }}
+              >
+                <Tag size={9} />
+                {tagName}
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${category.color}`}>

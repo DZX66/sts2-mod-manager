@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu, Cloud, FolderOpen, Download } from 'lucide-react';
+import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu, Cloud, FolderOpen, Download, Tag as TagIcon, Palette } from 'lucide-react';
 import { useT } from '../i18n/I18nContext';
 
 export default function SettingsPage() {
@@ -12,6 +12,23 @@ export default function SettingsPage() {
   const [selectedSteamId, setSelectedSteamId] = useState(null);
   const [workshopPath, setWorkshopPath] = useState(null);
   const [updateStatus, setUpdateStatus] = useState(null); // null | 'checking' | 'up-to-date' | { version: string, url: string } | 'failed'
+  
+  // Tag colors
+  const [tagColorData, setTagColorData] = useState({ modTags: {}, tagColors: {} });
+  const [allTags, setAllTags] = useState([]);
+
+  const loadTagColorData = async () => {
+    try {
+      const data = await window.api.tagsLoad();
+      setTagColorData(data);
+      const tags = data.modTags
+        ? [...new Set(Object.values(data.modTags).flat())].sort((a, b) => a.localeCompare(b))
+        : [];
+      setAllTags(tags);
+    } catch (e) {
+      console.error('Failed to load tag colors:', e);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -37,6 +54,9 @@ export default function SettingsPage() {
       if (info.workshopPath) {
         setWorkshopPath(info.workshopPath);
       }
+      
+      // Load tag colors
+      await loadTagColorData();
     })();
   }, []);
 
@@ -100,6 +120,25 @@ export default function SettingsPage() {
       console.error('Failed to save config:', e);
     }
   };
+
+  const handleTagColorChange = async (tagName, newColor) => {
+    const newTagColors = { ...(tagColorData.tagColors || {}) };
+    newTagColors[tagName] = newColor;
+    const newData = { ...tagColorData, tagColors: newTagColors };
+    setTagColorData(newData);
+    try {
+      await window.api.tagsSave(newData);
+    } catch (e) {
+      console.error('Failed to save tag color:', e);
+    }
+  };
+
+  const PRESET_COLORS_SETTINGS = [
+    '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4',
+    '#6366f1', '#a855f7', '#ec4899', '#14b8a6', '#f43f5e',
+    '#ff6b6b', '#ffa07a', '#ffd700', '#90ee90', '#87ceeb',
+    '#b0a0ff', '#ffb6c1', '#98d8c8', '#dda0dd', '#c0c0c0',
+  ];
 
   const handleCheckUpdate = async () => {
     setUpdateStatus('checking');
@@ -287,6 +326,62 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Tag Colors */}
+        {allTags.length > 0 && (
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-6 mb-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+                <Palette size={18} className="text-gray-600" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.tagColors')}</h2>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{t('settings.tagColorsDesc')}</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {allTags.map(tagName => {
+                const color = tagColorData.tagColors?.[tagName] || '#6366f1';
+                return (
+                  <div key={tagName} className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <TagIcon size={14} style={{ color }} />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{tagName}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex gap-0.5">
+                        {PRESET_COLORS_SETTINGS.slice(0, 6).map(c => (
+                          <button
+                            key={c}
+                            onClick={() => handleTagColorChange(tagName, c)}
+                            className={`w-4 h-4 rounded-full border transition-transform hover:scale-125 ${
+                              color === c ? 'border-gray-900 scale-110 ring-1 ring-gray-400' : 'border-gray-200'
+                            }`}
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                      <label className="relative cursor-pointer ml-1">
+                        <div
+                          className="w-5 h-5 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
+                          style={{ backgroundColor: color, opacity: 0.3 }}
+                        >
+                          <Palette size={10} className="text-gray-500" />
+                        </div>
+                        <input
+                          type="color"
+                          value={color}
+                          onChange={(e) => handleTagColorChange(tagName, e.target.value)}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-5 h-5"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

@@ -33,6 +33,7 @@
     "filterAll": "All",
     "filterEnabled": "Enabled",
     "filterDisabled": "Disabled",
+    "filterTag": "Tag",
     "sortName": "By Name",
     "sortDepIssues": "Dep Issues First",
     "sortGameplay": "Gameplay First",
@@ -121,7 +122,9 @@
     "searchHelpCombine": "Combine multiple tags:",
     "searchHelpCombineText": "#workshop #enabled",
     "searchHelpSearch": "Search text after tags:",
-    "searchHelpSearchText": "#workshop map"
+    "searchHelpSearchText": "#workshop map",
+    "searchHelpCustomTag": "Custom tag filter",
+    "searchHelpCustomTagText": "#tag:tagname"
   },
   "modCard": {
     "missingDeps": "Missing dependencies, won't work: {deps}",
@@ -175,7 +178,12 @@
     "notesSaving": "Saving...",
     "notesClear": "Clear",
     "notesPlaceholder": "Add notes...",
-    "noDescription": "No description"
+    "noDescription": "No description",
+    "customTags": "Custom Tags",
+    "addTag": "Add Tag",
+    "removeTag": "Remove Tag",
+    "tagInputPlaceholder": "Enter tag name...",
+    "tagCreateNew": "Create tag \"{name}\""
   },
   "logViewer": {
     "title": "Game Logs",
@@ -261,7 +269,9 @@
     "upToDate": "Already up to date",
     "updateAvailable": "New version {version} available",
     "checkUpdateFailed": "Failed to check for updates",
-    "downloadPage": "Go to download page"
+    "downloadPage": "Go to download page",
+    "tagColors": "Tag Colors",
+    "tagColorsDesc": "Customize colors for custom tags"
   },
   "crashDialog": {
     "title": "Game Exit Analysis",
@@ -324,7 +334,7 @@
     "importError": "Import failed",
     "noEnabledMods": "No enabled MODs",
     "noEnabledModsHint": "Enable some MODs in the Mods page first",
-    "hashNote": "Note: Load order affects MOD hash value. Different hash values prevent online play."
+    "hashNote": "Note: Load order may affect MOD hash value. Different hash values prevent online play."
   },
   "common": {
     "unknown": "Unknown",

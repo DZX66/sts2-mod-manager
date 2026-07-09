@@ -12,26 +12,31 @@ import TitleBar from './components/TitleBar';
 import {
   Download, RefreshCw, Search, FolderOpen, Archive, UploadCloud, Play, Loader, X, AlertTriangle, Info,
   ToggleLeft, ToggleRight, Trash2, Layers, Save, ChevronDown, Package, LayoutGrid, List,
-  ArrowUpDown, CheckCircle2, Circle, Rocket, HelpCircle,
+  ArrowUpDown, CheckCircle2, Circle, Rocket, HelpCircle, Tag,
 } from 'lucide-react';
 import { getUnsatisfiedDeps } from './utils/deps';
 import { useT } from './i18n/I18nContext';
+import { loadTagsData, getModTags } from './components/ModTags';
 
 function parseSearchQuery(input) {
   const trimmed = (input || '').trim();
-  if (!trimmed) return { tags: [], text: '' };
+  if (!trimmed) return { tags: [], text: '', customTags: [] };
   const tokens = trimmed.split(/\s+/);
   const tags = [];
   const textParts = [];
+  const customTags = [];
   for (const token of tokens) {
-    if (token.startsWith('#')) {
+    if (token.startsWith('#tag:')) {
+      const tag = token.slice(5).trim();
+      if (tag) customTags.push(tag.toLowerCase());
+    } else if (token.startsWith('#')) {
       const tag = token.slice(1).toLowerCase();
       tags.push(tag);
     } else {
       textParts.push(token);
     }
   }
-  return { tags, text: textParts.join(' ') };
+  return { tags, text: textParts.join(' '), customTags };
 }
 
 const TAG_FILTERS = {
@@ -70,6 +75,10 @@ export default function App() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showSearchHelp, setShowSearchHelp] = useState(false);
   const [showWorkshopWarning, setShowWorkshopWarning] = useState(false);
+  const [tagsData, setTagsData] = useState({ modTags: {}, tagColors: {} });
+  const [tagFilter, setTagFilter] = useState('all'); // 'all' or specific tag name
+  const [showTagFilterMenu, setShowTagFilterMenu] = useState(false);
+  const [allTagNames, setAllTagNames] = useState([]);
   const [translations, setTranslations] = useState({});
   const [loadOrder, setLoadOrder] = useState([]);
   const [loadOrderInitialized, setLoadOrderInitialized] = useState(false);
@@ -176,6 +185,28 @@ export default function App() {
     })();
   }, [syncMods]);
 
+  // Load tags data
+  useEffect(() => {
+    loadTagsData().then(data => {
+      setTagsData(data);
+      const tags = data.modTags
+        ? [...new Set(Object.values(data.modTags).flat())].sort((a, b) => a.localeCompare(b))
+        : [];
+      setAllTagNames(tags);
+    });
+  }, []);
+
+  // Refresh tags when mods change or when switching back to mods page
+  useEffect(() => {
+    loadTagsData().then(data => {
+      setTagsData(data);
+      const tags = data.modTags
+        ? [...new Set(Object.values(data.modTags).flat())].sort((a, b) => a.localeCompare(b))
+        : [];
+      setAllTagNames(tags);
+    });
+  }, [mods.length, selectedMod?.instanceKey, page]);
+
   // Fetch app version & check for updates
   useEffect(() => {
     (async () => {
@@ -200,7 +231,7 @@ export default function App() {
         const latestVersion = data.tag_name.replace(/^v/, '');
         const currentVersion = appVersion.replace(/^v/, '');
         if (latestVersion !== currentVersion) {
-          setUpdateDialog({ version: latestVersion, url: data.html_url });
+          setUpdateDialog({ version: latestVersion, url: data.html_url, body: data.body });
         }
       } catch (e) {
         console.error('Update check failed:', e);
@@ -489,13 +520,19 @@ export default function App() {
 
   const isFramework = (mod) => mods.some(m => m.id !== mod.id && m.dependencies && m.dependencies.some(d => d.id === mod.id));
 
-  const { tags: searchTags, text: searchText } = parseSearchQuery(search);
+  const { tags: searchTags, text: searchText, customTags: searchCustomTags } = parseSearchQuery(search);
 
   const filteredMods = mods.filter(m => {
     if (filter === 'enabled' && !m.enabled) return false;
     if (filter === 'disabled' && m.enabled) return false;
 
-    // Apply tag filters
+    // Apply tag filter from dropdown
+    if (tagFilter !== 'all') {
+      const modTagNames = getModTags(tagsData, m.id);
+      if (!modTagNames.includes(tagFilter)) return false;
+    }
+
+    // Apply search tag filters
     for (const tag of searchTags) {
       if (tag === 'framework') {
         if (!isFramework(m)) return false;
@@ -505,6 +542,14 @@ export default function App() {
         if (!hasMissingDeps(m)) return false;
       } else if (TAG_FILTERS[tag]) {
         if (!TAG_FILTERS[tag](m)) return false;
+      }
+    }
+
+    // Apply custom tag search (#tag:name syntax)
+    for (const customTag of searchCustomTags) {
+      const modTagNames = getModTags(tagsData, m.id);
+      if (!modTagNames.some(t => t.toLowerCase().includes(customTag))) {
+        return false;
       }
     }
 
@@ -672,6 +717,7 @@ export default function App() {
                           <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#framework</code> {t('mods.searchHelpFramework')}</p>
                           <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#resource</code> {t('mods.searchHelpResource')}</p>
                           <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#missingdeps</code> {t('mods.searchHelpMissingDeps')}</p>
+                          <p><code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">#tag:名称</code> {t('mods.searchHelpCustomTag')}</p>
                           <div className="border-t border-gray-100 dark:border-gray-700 pt-2 mt-2">
                             <p className="text-gray-400">{t('mods.searchHelpCombine')}<code className="text-[11px]">{t('mods.searchHelpCombineText')}</code></p>
                             <p className="text-gray-400">{t('mods.searchHelpSearch')}<code className="text-[11px]">{t('mods.searchHelpSearchText')}</code></p>
@@ -690,6 +736,48 @@ export default function App() {
                       </button>
                     ))}
                   </div>
+                  <div className="relative">
+                    <button onClick={() => setShowTagFilterMenu(!showTagFilterMenu)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        tagFilter !== 'all'
+                          ? 'bg-gray-900 text-white'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}>
+                      <Tag size={13} />
+                      {tagFilter !== 'all' ? tagFilter : t('mods.filterTag')}
+                      <ChevronDown size={11} />
+                    </button>
+                    {showTagFilterMenu && (
+                      <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden py-1">
+                        <button
+                          onClick={() => { setTagFilter('all'); setShowTagFilterMenu(false); }}
+                          className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                            tagFilter === 'all' ? 'bg-gray-900 text-white font-medium' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          }`}>
+                          {t('mods.filterAll')}
+                        </button>
+                        {allTagNames.map(tagName => {
+                          const color = tagsData.tagColors?.[tagName];
+                          const bg = color ? color + '20' : '#f0f0ff';
+                          const textColor = color || '#6366f1';
+                          return (
+                            <button
+                              key={tagName}
+                              onClick={() => { setTagFilter(tagName); setShowTagFilterMenu(false); }}
+                              className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                                tagFilter === tagName ? 'bg-gray-900 text-white font-medium' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                              }`}>
+                              <Tag size={11} style={{ color: textColor }} />
+                              <span>{tagName}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  {showTagFilterMenu && (
+                    <div className="fixed inset-0 z-40" onClick={() => setShowTagFilterMenu(false)} />
+                  )}
                   <div className="relative">
                     <button onClick={() => setShowSortMenu(!showSortMenu)}
                       className="flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
@@ -850,6 +938,7 @@ export default function App() {
                             allMods={mods}
                             translations={translations}
                             gameVersion={gameVersion}
+                            tagsData={tagsData}
                             onToggle={() => handleToggle(mod)}
                             onClick={() => setSelectedMod(mod)}
                             selected={selectedMod?.instanceKey === mod.instanceKey}
@@ -868,6 +957,13 @@ export default function App() {
                       onUninstall={() => handleUninstall(selectedMod)}
                       onSelectMod={setSelectedMod}
                       onTranslationSaved={() => window.api.loadTranslations && window.api.loadTranslations().then(setTranslations)}
+                      onTagsChanged={() => loadTagsData().then(data => {
+                        setTagsData(data);
+                        const tags = data.modTags
+                          ? [...new Set(Object.values(data.modTags).flat())].sort((a, b) => a.localeCompare(b))
+                          : [];
+                        setAllTagNames(tags);
+                      })}
                     />
                   )}
                 </div>
@@ -921,6 +1017,13 @@ export default function App() {
                       onUninstall={() => handleUninstall(selectedMod)}
                       onSelectMod={setSelectedMod}
                       onTranslationSaved={() => window.api.loadTranslations && window.api.loadTranslations().then(setTranslations)}
+                      onTagsChanged={() => loadTagsData().then(data => {
+                        setTagsData(data);
+                        const tags = data.modTags
+                          ? [...new Set(Object.values(data.modTags).flat())].sort((a, b) => a.localeCompare(b))
+                          : [];
+                        setAllTagNames(tags);
+                      })}
                     />
                   ) : (
                     <div className="w-80 bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-gray-300 dark:text-gray-600">
@@ -1000,17 +1103,26 @@ export default function App() {
 
       {updateDialog && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setUpdateDialog(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-[480px] overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
+          <div className="bg-white rounded-2xl shadow-2xl w-[540px] max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 flex-shrink-0">
               <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
                 <Download size={20} className="text-blue-500" />
               </div>
-              <h3 className="font-bold text-gray-900">{t('updateDialog.title')}</h3>
+              <div>
+                <h3 className="font-bold text-gray-900">{t('updateDialog.title')}</h3>
+                <p className="text-xs text-gray-500">v{updateDialog.version}</p>
+              </div>
             </div>
-            <div className="px-6 py-4">
-              <p className="text-sm text-gray-600 leading-relaxed">{t('updateDialog.message', { version: updateDialog.version })}</p>
+            <div className="px-6 py-4 overflow-y-auto flex-1 min-h-0">
+              {updateDialog.body ? (
+                <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                  {updateDialog.body}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600 leading-relaxed">{t('updateDialog.message', { version: updateDialog.version })}</p>
+              )}
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-2 flex-shrink-0">
               <button onClick={() => {
                 window.api.openUrl && window.api.openUrl(updateDialog.url);
                 setUpdateDialog(null);

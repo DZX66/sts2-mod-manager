@@ -7,6 +7,7 @@ mod notes;
 mod profiles;
 mod saves;
 mod steam;
+mod tags;
 mod translate;
 mod translations;
 
@@ -81,6 +82,9 @@ pub fn run() {
             load_order::load_order_import_file,
             load_order::load_order_write_to_settings,
             load_order::load_order_get_enabled_ids,
+            // Tags
+            tags::tags_load,
+            tags::tags_save,
             // Steam
             mods::steam_get_users,
             mods::steam_select_user,

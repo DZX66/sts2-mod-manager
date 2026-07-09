@@ -33,6 +33,7 @@
     "filterAll": "全部",
     "filterEnabled": "已启用",
     "filterDisabled": "已禁用",
+    "filterTag": "标签",
     "sortName": "按名称",
     "sortDepIssues": "依赖问题优先",
     "sortGameplay": "影响玩法优先",
@@ -121,7 +122,9 @@
     "searchHelpCombine": "多个标签组合：",
     "searchHelpCombineText": "#workshop #enabled",
     "searchHelpSearch": "标签后加文字：",
-    "searchHelpSearchText": "#workshop 地图"
+    "searchHelpSearchText": "#workshop 地图",
+    "searchHelpCustomTag": "自定义标签筛选：",
+    "searchHelpCustomTagText": "#tag:标签名"
   },
   "modCard": {
     "missingDeps": "缺失依赖，无法正常工作：{deps}",
@@ -175,7 +178,12 @@
     "notesSaving": "保存中...",
     "notesClear": "清除",
     "notesPlaceholder": "添加备注...",
-    "noDescription": "暂无描述"
+    "noDescription": "暂无描述",
+    "customTags": "自定义标签",
+    "addTag": "添加标签",
+    "removeTag": "移除标签",
+    "tagInputPlaceholder": "输入标签名...",
+    "tagCreateNew": "创建标签「{name}」"
   },
   "logViewer": {
     "title": "游戏日志",
@@ -261,7 +269,9 @@
     "upToDate": "已是最新版本",
     "updateAvailable": "发现新版本 {version}",
     "checkUpdateFailed": "检查更新失败",
-    "downloadPage": "前往下载页面"
+    "downloadPage": "前往下载页面",
+    "tagColors": "标签颜色",
+    "tagColorsDesc": "自定义 MOD 自定义标签的颜色"
   },
   "crashDialog": {
     "title": "游戏退出分析",
@@ -324,7 +334,7 @@
     "importError": "导入失败",
     "noEnabledMods": "没有已启用的 MOD",
     "noEnabledModsHint": "先到 MOD 管理页面启用一些 MOD",
-    "hashNote": "注：加载顺序会影响 MOD hash 值，hash 值不同无法联机"
+    "hashNote": "注：加载顺序可能会影响 MOD hash 值，hash 值不同无法联机"
   },
   "common": {
     "unknown": "未知",

@@ -2,7 +2,6 @@ use serde::Serialize;
 use std::fs;
 use std::path::Path;
 
-const MAX_LOG_SIZE: u64 = 512 * 1024;
 const MAX_LOG_FILES: usize = 50;
 
 #[derive(Serialize)]
