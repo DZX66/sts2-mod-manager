@@ -222,7 +222,6 @@ export default function App() {
   // Check for updates on mount (only if not dismissed)
   useEffect(() => {
     if (!appVersion) return;
-    if (localStorage.getItem('sts2-update-dismissed')) return;
     (async () => {
       try {
         const res = await fetch('https://api.github.com/repos/DZX66/sts2-mod-manager/releases/latest');
@@ -230,6 +229,8 @@ export default function App() {
         const data = await res.json();
         const latestVersion = data.tag_name.replace(/^v/, '');
         const currentVersion = appVersion.replace(/^v/, '');
+        const dismissedVersion = localStorage.getItem('sts2-update-dismissed');
+        if (dismissedVersion === latestVersion) return;
         if (latestVersion !== currentVersion) {
           setUpdateDialog({ version: latestVersion, url: data.html_url, body: data.body });
         }
@@ -1131,7 +1132,7 @@ export default function App() {
                 {t('updateDialog.openRelease')}
               </button>
               <button onClick={() => {
-                localStorage.setItem('sts2-update-dismissed', 'true');
+                localStorage.setItem('sts2-update-dismissed', updateDialog.version);
                 setUpdateDialog(null);
               }}
                 className="px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
