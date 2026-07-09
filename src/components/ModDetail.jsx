@@ -128,10 +128,21 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
             [t('modDetail.size'), formatSize(mod.size)],
             [t('modDetail.type'), mod.modType === 'steam_workshop' ? t('modDetail.typeWorkshop') : mod.isFolder ? t('modDetail.typeFolder') : t('modDetail.typeFile')],
             ...(mod.min_game_version ? [[t('modDetail.requiredGameVersion'), `≥ v${mod.min_game_version}`]] : []),
+            ...(mod.modType === 'steam_workshop' && mod.folderName ? [[t('modDetail.workshopPage'), '']] : []),
           ].map(([label, value]) => (
             <div key={label} className="flex items-center justify-between">
               <span className="text-xs text-gray-400 dark:text-gray-500">{label}</span>
-              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">{value}</span>
+              {label === t('modDetail.workshopPage') ? (
+                <button
+                  onClick={() => window.api.openUrl(`steam://url/CommunityFilePage/${mod.folderName}`)}
+                  className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 font-medium transition-colors"
+                  title={t('modDetail.workshopPageTitle')}>
+                  <ExternalLink size={12} />
+                  {t('modDetail.openWorkshop')}
+                </button>
+              ) : (
+                <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">{value}</span>
+              )}
             </div>
           ))}
         </div>

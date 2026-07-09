@@ -16,6 +16,7 @@ export default function Sidebar({ page, setPage, gamePath, onSelectGamePath, ena
   ];
 
   const quickLinks = [
+    { id: 'workshop', icon: ExternalLink, label: t('nav.workshop'), action: () => window.api.openUrl('steam://openurl/https://steamcommunity.com/app/2868840/workshop/') },
     { id: 'nexus', icon: ExternalLink, label: t('nav.nexusMods'), action: () => window.api.openUrl('https://www.nexusmods.com/slaythespire2') },
     { id: 'modsDir', icon: FolderOpen, label: t('nav.modsFolder'), action: () => window.api.openModsDir() },
     { id: 'logsDir', icon: FileText, label: t('nav.logsFolder'), action: () => window.api.openLogsDir() },

@@ -185,7 +185,18 @@ fn shell_open_path(path: String) {
 
 #[tauri::command]
 fn shell_open_url(url: String) {
-    if url.starts_with("https://") || url.starts_with("http://") {
+    if url.starts_with("steam://") {
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::process::Command::new("cmd")
+                .args(["/C", "start", &url])
+                .spawn();
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let _ = opener::open(url);
+        }
+    } else if url.starts_with("https://") || url.starts_with("http://") {
         let _ = opener::open_browser(url);
     }
 }
