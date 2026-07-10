@@ -355,6 +355,19 @@ export default function App() {
     showToast(t('mods.profileSaved', { name }));
   };
 
+  const handleSaveExistingProfile = async (name) => {
+    const snapshot = {};
+    mods.forEach(m => {
+      if (m.enabled) {
+        snapshot[m.id] = { version: m.version || null, enabled: true };
+      }
+    });
+    const updated = { ...profiles, [name]: { ...profiles[name], snapshot, loadOrder: [...loadOrder], savedAt: new Date().toISOString() } };
+    await window.api.saveProfiles(updated);
+    setProfiles(updated);
+    showToast(t('mods.profileOverwritten', { name }));
+  };
+
   const getProfileEntry = (entry) => {
     if (typeof entry === 'boolean') return { version: null, enabled: entry };
     return { version: entry?.version || null, enabled: entry?.enabled ?? false };
@@ -662,6 +675,11 @@ export default function App() {
                                   <button onClick={() => handleApplyProfile(name)}
                                     className="px-2 py-1 text-[10px] font-medium bg-gray-900 text-white rounded-md hover:bg-gray-800">
                                     {t('mods.profileApply')}
+                                  </button>
+                                  <button onClick={() => handleSaveExistingProfile(name)}
+                                    className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                                    title={t('mods.profileOverwriteTitle')}>
+                                    <Save size={12} />
                                   </button>
                                   <button onClick={() => handleDeleteProfile(name)}
                                     className="p-1 text-gray-300 hover:text-red-500 transition-colors">

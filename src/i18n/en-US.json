@@ -106,6 +106,8 @@
     "profileNoProfiles": "No profiles yet",
     "profileModsCount": "{count} MOD(s)",
     "profileApply": "Apply",
+    "profileOverwriteTitle": "Overwrite this profile with current MOD state",
+    "profileOverwritten": "Profile \"{name}\" overwitten",
     "dragZipError": "Please drag & drop .zip files or MOD folders",
     "workshopWarningTitle": "Workshop MOD Detected",
     "workshopWarningMessage": "This manager is not compatible with Steam Workshop management features. Please do not use Steam Workshop to manage these MODs.",

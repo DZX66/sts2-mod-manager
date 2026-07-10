@@ -106,6 +106,8 @@
     "profileNoProfiles": "暂无配置",
     "profileModsCount": "{count} 个 MOD",
     "profileApply": "应用",
+    "profileOverwriteTitle": "用当前 MOD 状态覆盖此配置",
+    "profileOverwritten": "配置 \"{name}\" 已覆盖",
     "dragZipError": "请拖入 .zip 压缩包或 MOD 文件夹",
     "workshopWarningTitle": "检测到创意工坊 MOD",
     "workshopWarningMessage": "此管理器与 Steam 创意工坊的管理功能不兼容，请不要使用 Steam 创意工坊的管理功能。如果你不知道这是什么意思，就不用管。",
