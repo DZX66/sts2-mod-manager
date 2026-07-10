@@ -277,7 +277,9 @@
     "checkUpdateFailed": "检查更新失败",
     "downloadPage": "前往下载页面",
     "tagColors": "标签颜色",
-    "tagColorsDesc": "自定义 MOD 自定义标签的颜色"
+    "tagColorsDesc": "自定义 MOD 自定义标签的颜色",
+    "pickColor": "选取颜色",
+    "hexLabel": "HEX"
   },
   "crashDialog": {
     "title": "游戏退出分析",

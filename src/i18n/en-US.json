@@ -277,7 +277,9 @@
     "checkUpdateFailed": "Failed to check for updates",
     "downloadPage": "Go to download page",
     "tagColors": "Tag Colors",
-    "tagColorsDesc": "Customize colors for custom tags"
+    "tagColorsDesc": "Customize colors for custom tags",
+    "pickColor": "Pick Color",
+    "hexLabel": "HEX"
   },
   "crashDialog": {
     "title": "Game Exit Analysis",

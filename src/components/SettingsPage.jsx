@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu, Cloud, FolderOpen, Download, Tag as TagIcon, Palette } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { HexColorPicker } from 'react-colorful';
+import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu, Cloud, FolderOpen, Download, Tag as TagIcon, Palette, X } from 'lucide-react';
 import { useT } from '../i18n/I18nContext';
 
 export default function SettingsPage() {
@@ -16,6 +17,20 @@ export default function SettingsPage() {
   // Tag colors
   const [tagColorData, setTagColorData] = useState({ modTags: {}, tagColors: {} });
   const [allTags, setAllTags] = useState([]);
+
+  const [pickerOpenForTag, setPickerOpenForTag] = useState(null);
+  const pickerRef = useRef(null);
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+        setPickerOpenForTag(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadTagColorData = async () => {
     try {
@@ -364,20 +379,49 @@ export default function SettingsPage() {
                           />
                         ))}
                       </div>
-                      <label className="relative cursor-pointer ml-1">
-                        <div
-                          className="w-5 h-5 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
+                      <div className="relative ml-1">
+                        <button
+                          onClick={() => setPickerOpenForTag(pickerOpenForTag === tagName ? null : tagName)}
+                          className="w-5 h-5 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
                           style={{ backgroundColor: color, opacity: 0.3 }}
                         >
                           <Palette size={10} className="text-gray-500" />
-                        </div>
-                        <input
-                          type="color"
-                          value={color}
-                          onChange={(e) => handleTagColorChange(tagName, e.target.value)}
-                          className="absolute inset-0 opacity-0 cursor-pointer w-5 h-5"
-                        />
-                      </label>
+                        </button>
+                        {pickerOpenForTag === tagName && (
+                          <div
+                            ref={pickerRef}
+                            className="absolute top-full right-0 mt-2 z-50 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('settings.pickColor')}</span>
+                              <button
+                                onClick={() => setPickerOpenForTag(null)}
+                                className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                <X size={12} className="text-gray-400" />
+                              </button>
+                            </div>
+                            <HexColorPicker
+                              color={color}
+                              onChange={(newColor) => handleTagColorChange(tagName, newColor)}
+                            />
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-xs text-gray-400 dark:text-gray-500">{t('settings.hexLabel')}</span>
+                              <input
+                                type="text"
+                                value={color}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (/^#[0-9a-fA-F]{0,6}$/.test(val)) {
+                                    handleTagColorChange(tagName, val);
+                                  }
+                                }}
+                                className="flex-1 px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
