@@ -344,6 +344,27 @@
     "noEnabledModsHint": "Enable some MODs in the Mods page first",
     "hashNote": "Note: Load order may affect MOD hash value. Different hash values prevent online play."
   },
+  "profileImport": {
+    "title": "Import Profile",
+    "exportFile": "Export to File",
+    "exportClipboard": "Export to Clipboard",
+    "importFile": "Import from File",
+    "importClipboard": "Import from Clipboard",
+    "exportSuccess": "Profile \"{name}\" exported",
+    "exportClipboardSuccess": "Profile \"{name}\" copied to clipboard",
+    "importDialogTitle": "Import Profile \"{name}\"",
+    "missingMods": "Missing MODs",
+    "versionMismatches": "Version Mismatches",
+    "workshopOpen": "Open Workshop",
+    "currentVersion": "Current version: {version}",
+    "expectedVersion": "Expected version: {version}",
+    "ignoreIssues": "Ignore Issues & Import",
+    "cancel": "Cancel",
+    "refresh": "Refresh (Re-scan MOD list)",
+    "clipboardError": "No valid profile data in clipboard",
+    "parseError": "Failed to parse profile data",
+    "pastePlaceholder": "Paste profile JSON data..."
+  },
   "common": {
     "unknown": "Unknown",
     "none": "None",

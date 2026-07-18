@@ -12,7 +12,7 @@ import TitleBar from './components/TitleBar';
 import {
   Download, RefreshCw, Search, FolderOpen, Archive, UploadCloud, Play, Loader, X, AlertTriangle, Info,
   ToggleLeft, ToggleRight, Trash2, Layers, Save, ChevronDown, Package, LayoutGrid, List,
-  ArrowUpDown, CheckCircle2, Circle, Rocket, HelpCircle, Tag,
+  ArrowUpDown, CheckCircle2, Circle, Rocket, HelpCircle, Tag, Clipboard,
 } from 'lucide-react';
 import { getUnsatisfiedDeps } from './utils/deps';
 import { useT } from './i18n/I18nContext';
@@ -72,6 +72,10 @@ export default function App() {
   const [newProfileName, setNewProfileName] = useState('');
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [missingModsDialog, setMissingModsDialog] = useState(null);
+  const [importProfileDialog, setImportProfileDialog] = useState(null);
+  const [importPasteText, setImportPasteText] = useState('');
+  const [showImportPaste, setShowImportPaste] = useState(false);
+  const [profileExporting, setProfileExporting] = useState(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showSearchHelp, setShowSearchHelp] = useState(false);
   const [showWorkshopWarning, setShowWorkshopWarning] = useState(false);
@@ -510,6 +514,148 @@ export default function App() {
     showToast(t('mods.profileDeleted', { name }));
   };
 
+  // ── Profile Export / Import ──
+
+  const handleExportProfileFile = async (name) => {
+    const profile = profiles[name];
+    if (!profile) return;
+    try {
+      const result = await window.api.profileExportFile(name, { ...profile, snapshot: profile.snapshot, loadOrder: profile.loadOrder }, mods);
+      showToast(t('profileImport.exportSuccess', { name }));
+    } catch (e) {
+      if (e !== '用户取消了操作') showToast(e || '导出失败', 'error');
+    }
+  };
+
+  const handleExportProfileClipboard = async (name) => {
+    const profile = profiles[name];
+    if (!profile) return;
+    try {
+      const json = await window.api.profileExportJson(name, { ...profile, snapshot: profile.snapshot, loadOrder: profile.loadOrder }, mods);
+      const ok = await window.api.profileCopyToClipboard(json);
+      if (ok) {
+        showToast(t('profileImport.exportClipboardSuccess', { name }));
+      } else {
+        showToast('复制到剪贴板失败', 'error');
+      }
+    } catch (e) {
+      showToast(e || '导出失败', 'error');
+    }
+  };
+
+  const handleImportProfileFile = async () => {
+    try {
+      const data = await window.api.profileImportFile();
+      if (data) {
+        openImportDialog(data);
+      }
+    } catch (e) {
+      if (e !== '用户取消了操作') showToast(e || '导入失败', 'error');
+    }
+  };
+
+  const handleImportProfileClipboard = async () => {
+    setShowImportPaste(true);
+  };
+
+  const handlePasteImport = async () => {
+    const text = importPasteText.trim();
+    if (!text) {
+      showToast(t('profileImport.clipboardError'), 'error');
+      return;
+    }
+    try {
+      const data = await window.api.profileImportParse(text);
+      if (data) {
+        setShowImportPaste(false);
+        setImportPasteText('');
+        openImportDialog(data);
+      }
+    } catch (e) {
+      showToast(t('profileImport.parseError'), 'error');
+    }
+  };
+
+  const saveImportedProfile = async (data) => {
+    // Save imported data as a local profile (don't apply)
+    const profileName = data.name || 'Imported Profile';
+    // Find unique name if "Imported Profile" already exists
+    let finalName = profileName;
+    let counter = 1;
+    while (profiles[finalName]) {
+      finalName = `${profileName} (${counter})`;
+      counter++;
+    }
+    const snapshot = data.snapshot || {};
+    const importedLoadOrder = data.loadOrder || [];
+    const updated = {
+      ...profiles,
+      [finalName]: {
+        snapshot,
+        loadOrder: importedLoadOrder,
+        savedAt: new Date().toISOString(),
+      },
+    };
+    await window.api.saveProfiles(updated);
+    setProfiles(updated);
+    showToast(t('profileImport.importDialogTitle', { name: finalName }) + ' ' + t('mods.profileSaved', { name: finalName }));
+  };
+
+  const openImportDialog = (data) => {
+    // Check for missing mods and version mismatches
+    const missingMods = (data.mods || []).filter(importedMod => {
+      return !mods.some(m => m.id === importedMod.id);
+    });
+
+    const versionMismatches = (data.mods || []).filter(importedMod => {
+      if (missingMods.some(m => m.id === importedMod.id)) return false;
+      if (!importedMod.version) return false;
+      return !mods.some(m => m.id === importedMod.id && m.version === importedMod.version);
+    }).map(importedMod => {
+      const currentVersions = [...new Set(
+        mods.filter(m => m.id === importedMod.id).map(m => m.version || t('common.unknown'))
+      )];
+      return {
+        id: importedMod.id,
+        name: importedMod.name,
+        savedVersion: importedMod.version,
+        availableVersions: currentVersions,
+        workshopId: importedMod.workshopId,
+      };
+    });
+
+    // If no issues, save directly without dialog
+    if (missingMods.length === 0 && versionMismatches.length === 0) {
+      saveImportedProfile(data);
+      return;
+    }
+
+    setImportProfileDialog({
+      data,
+      name: data.name,
+      missingMods: missingMods.map(m => ({
+        id: m.id,
+        name: m.name,
+        version: m.version,
+        workshopId: m.workshopId,
+        modType: m.modType,
+      })),
+      versionMismatches,
+      onIgnore: async () => {
+        setImportProfileDialog(null);
+        await saveImportedProfile(data);
+      },
+      onRefresh: async () => {
+        setImportProfileDialog(null);
+        setProfileExporting('refreshing');
+        await refreshMods();
+        setProfileExporting(null);
+        // Re-open dialog with fresh mods list
+        openImportDialog(data);
+      },
+    });
+  };
+
   const handleDrop = async (e) => {
     e.preventDefault();
     setDragOver(false);
@@ -676,10 +822,20 @@ export default function App() {
                                     className="px-2 py-1 text-[10px] font-medium bg-gray-900 text-white rounded-md hover:bg-gray-800">
                                     {t('mods.profileApply')}
                                   </button>
+                                  <button onClick={() => handleExportProfileFile(name)}
+                                    className="p-1 text-gray-400 hover:text-emerald-600 transition-colors"
+                                    title={t('profileImport.exportFile')}>
+                                    <Download size={12} />
+                                  </button>
+                                  <button onClick={() => handleExportProfileClipboard(name)}
+                                    className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                                    title={t('profileImport.exportClipboard')}>
+                                    <Clipboard size={12} />
+                                  </button>
                                   <button onClick={() => handleSaveExistingProfile(name)}
                                     className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
                                     title={t('mods.profileOverwriteTitle')}>
-                                    <Save size={12} />
+                                    <RefreshCw size={12} />
                                   </button>
                                   <button onClick={() => handleDeleteProfile(name)}
                                     className="p-1 text-gray-300 hover:text-red-500 transition-colors">
@@ -688,6 +844,16 @@ export default function App() {
                                 </div>
                               </div>
                             ))}
+                          </div>
+                          <div className="border-t border-gray-50 dark:border-gray-700 px-3 py-2 flex gap-1.5">
+                            <button onClick={handleImportProfileFile}
+                              className="flex-1 px-2 py-1.5 text-[10px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                              {t('profileImport.importFile')}
+                            </button>
+                            <button onClick={handleImportProfileClipboard}
+                              className="flex-1 px-2 py-1.5 text-[10px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                              {t('profileImport.importClipboard')}
+                            </button>
                           </div>
                         </div>
                       )}
@@ -1225,6 +1391,132 @@ export default function App() {
               <button onClick={missingModsDialog.onUpdate}
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
                 {t('missingModsDialog.updateProfile')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {importProfileDialog && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setImportProfileDialog(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[520px] max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+                <AlertTriangle size={20} className="text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">{t('profileImport.importDialogTitle', { name: importProfileDialog.name })}</h3>
+                <p className="text-xs text-gray-400">
+                  {importProfileDialog.missingMods?.length > 0 && `${importProfileDialog.missingMods.length} ${t('profileImport.missingMods')}`}
+                  {importProfileDialog.missingMods?.length > 0 && importProfileDialog.versionMismatches?.length > 0 && ' · '}
+                  {importProfileDialog.versionMismatches?.length > 0 && `${importProfileDialog.versionMismatches.length} ${t('profileImport.versionMismatches')}`}
+                </p>
+              </div>
+            </div>
+            <div className="px-6 py-4 overflow-y-auto flex-1 min-h-0 space-y-4">
+              {importProfileDialog.missingMods?.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase mb-2">{t('profileImport.missingMods')}</p>
+                  <div className="space-y-1.5">
+                    {importProfileDialog.missingMods.map((m, i) => (
+                      <div key={i} className="flex items-center gap-3 py-1.5 px-3 bg-red-50 rounded-lg">
+                        <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                          <X size={10} className="text-red-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-800 truncate">{m.name || m.id}</p>
+                          <p className="text-[10px] text-gray-400">{t('profileImport.expectedVersion', { version: m.version || t('common.unknown') })}</p>
+                        </div>
+                        {m.workshopId && (
+                          <button onClick={() => {
+                            const url = `steam://url/CommunityFilePage/${m.workshopId}`;
+                            window.api.openUrl(url);
+                          }}
+                            className="px-2 py-1 text-[10px] font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex-shrink-0">
+                            {t('profileImport.workshopOpen')}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {importProfileDialog.versionMismatches?.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase mb-2">{t('profileImport.versionMismatches')}</p>
+                  <div className="space-y-1.5">
+                    {importProfileDialog.versionMismatches.map((m, i) => (
+                      <div key={i} className="flex items-center gap-3 py-1.5 px-3 bg-amber-50 rounded-lg">
+                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                          <Info size={10} className="text-amber-500" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-800 truncate">{m.name || m.id}</p>
+                          <p className="text-[10px] text-gray-400">
+                            {t('profileImport.expectedVersion', { version: m.savedVersion })} · {t('profileImport.currentVersion', { version: m.availableVersions?.join(', ') || t('common.unknown') })}
+                          </p>
+                        </div>
+                        {m.workshopId && (
+                          <button onClick={() => {
+                            const url = `steam://url/CommunityFilePage/${m.workshopId}`;
+                            window.api.openUrl(url);
+                          }}
+                            className="px-2 py-1 text-[10px] font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex-shrink-0">
+                            {t('profileImport.workshopOpen')}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {importProfileDialog.missingMods?.length === 0 && importProfileDialog.versionMismatches?.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-4">{t('mods.confirmApplyProfileNoChanges')}</p>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-2 flex-shrink-0">
+              <button onClick={importProfileDialog.onIgnore}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors">
+                {t('profileImport.ignoreIssues')}
+              </button>
+              <button onClick={() => setImportProfileDialog(null)}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+                {t('profileImport.cancel')}
+              </button>
+              <button onClick={importProfileDialog.onRefresh}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+                {t('profileImport.refresh')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImportPaste && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { setShowImportPaste(false); setImportPasteText(''); }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[480px] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
+              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                <Package size={20} className="text-blue-500" />
+              </div>
+              <h3 className="font-bold text-gray-900">{t('profileImport.importClipboard')}</h3>
+            </div>
+            <div className="px-6 py-4">
+              <textarea
+                value={importPasteText}
+                onChange={e => setImportPasteText(e.target.value)}
+                placeholder={t('profileImport.pastePlaceholder')}
+                className="w-full h-32 px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+              />
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
+              <button onClick={handlePasteImport}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors">
+                {t('confirmDialog.confirm')}
+              </button>
+              <button onClick={() => { setShowImportPaste(false); setImportPasteText(''); }}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+                {t('confirmDialog.cancel')}
               </button>
             </div>
           </div>

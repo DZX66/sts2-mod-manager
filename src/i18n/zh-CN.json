@@ -344,6 +344,27 @@
     "noEnabledModsHint": "先到 MOD 管理页面启用一些 MOD",
     "hashNote": "注：加载顺序可能会影响 MOD hash 值，hash 值不同无法联机"
   },
+  "profileImport": {
+    "title": "导入配置",
+    "exportFile": "导出为文件",
+    "exportClipboard": "导出到剪贴板",
+    "importFile": "从文件导入",
+    "importClipboard": "从剪贴板导入",
+    "exportSuccess": "配置「{name}」已导出",
+    "exportClipboardSuccess": "配置「{name}」已复制到剪贴板",
+    "importDialogTitle": "导入配置「{name}」",
+    "missingMods": "缺失的 MOD",
+    "versionMismatches": "版本不匹配的 MOD",
+    "workshopOpen": "打开创意工坊",
+    "currentVersion": "当前版本: {version}",
+    "expectedVersion": "期望版本: {version}",
+    "ignoreIssues": "忽略问题，继续导入",
+    "cancel": "取消",
+    "refresh": "刷新（重新识别 MOD 列表）",
+    "clipboardError": "剪贴板中没有有效的配置数据",
+    "parseError": "配置数据解析失败",
+    "pastePlaceholder": "粘贴配置 JSON 数据..."
+  },
   "common": {
     "unknown": "未知",
     "none": "无",

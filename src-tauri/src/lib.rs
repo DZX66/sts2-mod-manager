@@ -64,6 +64,11 @@ pub fn run() {
             // Profiles
             profiles::profiles_load,
             profiles::profiles_save,
+            profiles::profile_export_json,
+            profiles::profile_export_file,
+            profiles::profile_import_parse,
+            profiles::profile_import_file,
+            profiles::profile_get_workshop_url,
             // Translate
             translate::translate_text,
             // Translations persistence

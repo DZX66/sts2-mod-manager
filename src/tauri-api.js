@@ -92,6 +92,28 @@ window.api = {
   // Profiles
   loadProfiles: () => invoke('profiles_load'),
   saveProfiles: (profiles) => invoke('profiles_save', { profiles }),
+  profileExportJson: (profileName, profileValue, mods) => invoke('profile_export_json', { profileName, profileValue, mods }),
+  profileExportFile: (profileName, profileValue, mods) => invoke('profile_export_file', { profileName, profileValue, mods }),
+  profileImportParse: (jsonStr) => invoke('profile_import_parse', { jsonStr }),
+  profileImportFile: () => invoke('profile_import_file'),
+  profileGetWorkshopUrl: (workshopId) => invoke('profile_get_workshop_url', { workshopId }),
+  profileCopyToClipboard: async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      console.error('Clipboard write failed:', e);
+      return false;
+    }
+  },
+  profileReadFromClipboard: async () => {
+    try {
+      return await navigator.clipboard.readText();
+    } catch (e) {
+      console.error('Clipboard read failed:', e);
+      return null;
+    }
+  },
 
   // Translate
   translateText: (text) => invoke('translate_text', { text }),
