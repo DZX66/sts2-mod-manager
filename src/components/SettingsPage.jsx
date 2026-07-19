@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { HexColorPicker } from 'react-colorful';
-import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu, Cloud, FolderOpen, Download, Tag as TagIcon, Palette, X } from 'lucide-react';
+import { Settings, Monitor, Sun, Moon, Globe, Gamepad2, Github, ExternalLink, Info, ChevronRight, Cpu, Cloud, FolderOpen, Download, Tag as TagIcon, Palette, X, FileText } from 'lucide-react';
 import { useT } from '../i18n/I18nContext';
 
 export default function SettingsPage() {
@@ -13,7 +13,34 @@ export default function SettingsPage() {
   const [selectedSteamId, setSelectedSteamId] = useState(null);
   const [workshopPath, setWorkshopPath] = useState(null);
   const [updateStatus, setUpdateStatus] = useState(null); // null | 'checking' | 'up-to-date' | { version: string, url: string } | 'failed'
-  
+  const [exporting, setExporting] = useState(false);
+
+  // Toast state
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleExportDiagnostic = async () => {
+    setExporting(true);
+    try {
+      const result = await window.api.exportDiagnosticReport();
+      if (result.success) {
+        showToast(t('settings.exportSuccess'));
+      } else if (result.error) {
+        // User cancelled - don't show error
+        if (result.error !== '用户取消了选择') {
+          showToast(t('settings.exportError'), 'error');
+        }
+      }
+    } catch (e) {
+      console.error('Failed to export diagnostic report:', e);
+      showToast(t('settings.exportError'), 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
   // Tag colors
   const [tagColorData, setTagColorData] = useState({ modTags: {}, tagColors: {} });
   const [allTags, setAllTags] = useState([]);
@@ -446,6 +473,17 @@ export default function SettingsPage() {
               <span className="text-sm text-gray-500 dark:text-gray-400">{t('settings.appVersion')}</span>
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">v{appVersion}</span>
             </div>
+            <button onClick={handleExportDiagnostic}
+              disabled={exporting}
+              className="w-full flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group disabled:opacity-50 mb-2">
+              <div className="flex items-center gap-2">
+                <FileText size={16} className="text-gray-400" />
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {exporting ? t('settings.exporting') : t('settings.exportDiagnostic')}
+                </span>
+              </div>
+              <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+            </button>
             <button onClick={handleCheckUpdate}
               disabled={updateStatus === 'checking'}
               className="w-full flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group disabled:opacity-50">
@@ -479,6 +517,15 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      {toast && (
+        <div className={`fixed bottom-6 right-6 px-4 py-3 rounded-xl shadow-lg text-sm font-medium z-50 transition-all ${
+          toast.type === 'error'
+            ? 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800'
+            : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-800'
+        }`}>
+          {toast.type === 'error' ? '✕' : '✓'} {toast.message}
+        </div>
+      )}
     </div>
   );
 }

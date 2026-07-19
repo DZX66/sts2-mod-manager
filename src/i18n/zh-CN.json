@@ -279,7 +279,12 @@
     "tagColors": "标签颜色",
     "tagColorsDesc": "自定义 MOD 自定义标签的颜色",
     "pickColor": "选取颜色",
-    "hexLabel": "HEX"
+    "hexLabel": "HEX",
+    "exportDiagnostic": "导出检测文件",
+    "exportDiagnosticDesc": "将系统环境、settings.save、MOD 目录树、创意工坊目录树和最近的游戏日志打包为 txt 文件",
+    "exporting": "正在生成...",
+    "exportSuccess": "检测文件已导出",
+    "exportError": "导出失败"
   },
   "crashDialog": {
     "title": "游戏退出分析",

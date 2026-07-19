@@ -1,4 +1,5 @@
 mod config;
+mod diagnostic;
 mod game;
 mod load_order;
 mod logs;
@@ -90,6 +91,8 @@ pub fn run() {
             // Tags
             tags::tags_load,
             tags::tags_save,
+            // Diagnostic
+            diagnostic::export_diagnostic_report,
             // Steam
             mods::steam_get_users,
             mods::steam_select_user,

@@ -135,6 +135,9 @@ window.api = {
   tagsLoad: () => invoke('tags_load'),
   tagsSave: (data) => invoke('tags_save', { data }),
 
+  // Diagnostic
+  exportDiagnosticReport: () => invoke('export_diagnostic_report'),
+
   // Mod notes
   loadModNotes: () => invoke('mods_notes_load'),
   saveModNotes: (data) => invoke('mods_notes_save', { data }),

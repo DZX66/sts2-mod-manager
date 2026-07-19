@@ -279,7 +279,12 @@
     "tagColors": "Tag Colors",
     "tagColorsDesc": "Customize colors for custom tags",
     "pickColor": "Pick Color",
-    "hexLabel": "HEX"
+    "hexLabel": "HEX",
+    "exportDiagnostic": "Export Diagnostic Report",
+    "exportDiagnosticDesc": "Package system info, settings.save, mods folder tree, workshop folder tree, and recent game logs into a txt file",
+    "exporting": "Generating...",
+    "exportSuccess": "Diagnostic report exported",
+    "exportError": "Export failed"
   },
   "crashDialog": {
     "title": "Game Exit Analysis",
