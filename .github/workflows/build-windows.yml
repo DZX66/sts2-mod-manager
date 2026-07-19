@@ -5,9 +5,6 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -34,6 +31,7 @@ jobs:
 
       - name: Build frontend
         run: npm run build:tauri-fe
+        shell: cmd
 
       - name: Build Tauri app
         run: npx tauri build
@@ -50,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: STS2-Mod-Manager-Portable
-          path: src-tauri/target/release/*.exe
+          path: src-tauri/target/release/sts2-mod-manager.exe
           retention-days: 30
 
       - name: Upload NSIS installer
