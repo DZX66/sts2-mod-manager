@@ -140,12 +140,16 @@ pub fn toggle_workshop_mod(steam_id: &str, mod_id: &str, enabled: bool) -> Resul
         let mod_list = ms_obj.get_mut("mod_list").unwrap();
         let arr = mod_list.as_array_mut().ok_or("mod_list 不是数组")?;
 
-        if let Some(entry) = arr.iter_mut().find(|e| e.get("id").and_then(|v| v.as_str()) == Some(mod_id)) {
+        // 只匹配 id 和 source 都相同的条目，避免同 id 不同来源的 mod 被误改
+        let target = arr.iter_mut().find(|e| {
+            e.get("id").and_then(|v| v.as_str()) == Some(mod_id)
+                && e.get("source").and_then(|v| v.as_str()) == Some("steam_workshop")
+        });
+
+        if let Some(entry) = target {
             entry["is_enabled"] = serde_json::Value::Bool(enabled);
-            if entry.get("source").is_none() {
-                entry["source"] = serde_json::Value::String("steam_workshop".to_string());
-            }
         } else {
+            // 没有找到对应 source 的条目，新增一个 steam_workshop 条目（不影响其他来源的同 id 条目）
             arr.push(serde_json::json!({
                 "id": mod_id,
                 "is_enabled": enabled,
@@ -251,11 +255,12 @@ pub fn scan_workshop_mods(workshop_path: &str, known_entries: &[ModListEntry]) -
                     {
                         let mod_id = content.get("id").and_then(|v| v.as_str()).map(String::from);
                         let is_enabled = if let Some(ref id) = mod_id {
-                            // If mod is in settings.save, use its enabled status
-                            // If mod is NOT in settings.save, default to enabled
-                            if let Some(entry) = known_entries.iter().find(|e| e.id == *id) {
+                            // 只匹配 source == steam_workshop 的条目，
+                            // 避免同 id 的本地 mod（mods_directory）条目干扰创意工坊版的状态
+                            if let Some(entry) = known_entries.iter().find(|e| e.id == *id && e.source == "steam_workshop") {
                                 entry.is_enabled
                             } else {
+                                // 不在列表中默认启用（与游戏行为一致）
                                 true
                             }
                         } else {

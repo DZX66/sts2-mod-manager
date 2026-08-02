@@ -90,31 +90,74 @@ fn smart_sort_mods(mods_list: &[mods::ModInfo]) -> Vec<String> {
 // ── Write to settings.save ──
 
 /// Build mod_list: only enabled mods + disabled workshop mods.
+/// 注意：同一 id 的本地 mod 和创意工坊 mod 可能同时存在，
+/// 必须按 (id, source) 去重，否则同 id 的创意工坊条目会丢失，
+/// 丢失后 scan_workshop_mods 会将其默认视为启用，导致误启用。
 fn build_settings_mod_list(load_order: &[String], all_mods: &[mods::ModInfo]) -> Vec<serde_json::Value> {
     let mut list: Vec<serde_json::Value> = Vec::new();
     let mut added = std::collections::HashSet::new();
 
-    // 1) Load order items
+    // 1) Load order items — 每个 id 处理它所有已启用的版本（本地 + 创意工坊）
     for mod_id in load_order {
         if added.contains(mod_id) { continue; }
-        if let Some(m) = all_mods.iter().find(|m| m.id.as_deref() == Some(mod_id)) {
-            if !m.enabled && m.mod_type.as_deref() != Some("steam_workshop") { continue; }
+        let matches: Vec<&mods::ModInfo> = all_mods.iter()
+            .filter(|m| m.id.as_deref() == Some(mod_id) && m.enabled)
+            .collect();
+        if matches.is_empty() {
+            // 没有任何启用的版本，尝试处理禁用的创意工坊版（保持其禁用状态）
+            let ws_matches: Vec<&mods::ModInfo> = all_mods.iter()
+                .filter(|m| m.id.as_deref() == Some(mod_id)
+                    && !m.enabled && m.mod_type.as_deref() == Some("steam_workshop"))
+                .collect();
+            for _m in ws_matches {
+                let key = format!("{}::steam_workshop", mod_id);
+                if added.contains(&key) { continue; }
+                added.insert(key);
+                list.push(serde_json::json!({"id": mod_id, "is_enabled": false, "source": "steam_workshop"}));
+            }
             added.insert(mod_id.clone());
+            continue;
+        }
+        for m in matches {
             let source = if m.mod_type.as_deref() == Some("steam_workshop") { "steam_workshop" } else { "mods_directory" };
+            let key = format!("{}::{}", mod_id, source);
+            if added.contains(&key) { continue; }
+            added.insert(key);
             list.push(serde_json::json!({"id": mod_id, "is_enabled": m.enabled, "source": source}));
         }
+        added.insert(mod_id.clone());
     }
 
-    // 2) Remaining enabled + disabled workshop
+    // 2) Remaining enabled + disabled workshop（按 (id, source) 去重）
     for m in all_mods {
         if let Some(ref id) = m.id {
-            if added.contains(id) { continue; }
             if !m.enabled && m.mod_type.as_deref() != Some("steam_workshop") { continue; }
-            added.insert(id.clone());
             let source = if m.mod_type.as_deref() == Some("steam_workshop") { "steam_workshop" } else { "mods_directory" };
+            let key = format!("{}::{}", id, source);
+            if added.contains(&key) { continue; }
+            added.insert(key);
             list.push(serde_json::json!({"id": id, "is_enabled": m.enabled, "source": source}));
         }
     }
+
+    // 后处理：若某个 id 存在至少一个启用的条目，则剔除该 id 下所有禁用的条目。
+    // 避免游戏遇到同 id 多条记录时产生加载顺序 bug。
+    // 若某 id 全部条目都是禁用，则保留（防止创意工坊版因不在列表中而被游戏默认启用）。
+    let mut enabled_ids = std::collections::HashSet::new();
+    for entry in &list {
+        if entry.get("is_enabled").and_then(|v| v.as_bool()) == Some(true) {
+            if let Some(id) = entry.get("id").and_then(|v| v.as_str()) {
+                enabled_ids.insert(id.to_string());
+            }
+        }
+    }
+    list.retain(|entry| {
+        let id = entry.get("id").and_then(|v| v.as_str()).unwrap_or("");
+        let is_enabled = entry.get("is_enabled").and_then(|v| v.as_bool()) == Some(true);
+        // 保留启用的条目；禁用的条目仅在没有同 id 启用条目时保留
+        is_enabled || !enabled_ids.contains(id)
+    });
+
     list
 }
 
