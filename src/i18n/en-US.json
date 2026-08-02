@@ -347,6 +347,7 @@
     "importError": "Import failed",
     "noEnabledMods": "No enabled MODs",
     "noEnabledModsHint": "Enable some MODs in the Mods page first",
+    "onlyAppliedAfterWrite": "The mod load order only takes effect after writing to settings.save",
     "hashNote": "Note: Load order may affect MOD hash value. Different hash values prevent online play."
   },
   "profileImport": {

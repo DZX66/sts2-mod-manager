@@ -347,6 +347,7 @@
     "importError": "导入失败",
     "noEnabledMods": "没有已启用的 MOD",
     "noEnabledModsHint": "先到 MOD 管理页面启用一些 MOD",
+    "onlyAppliedAfterWrite": "只有写入 settings.save，mod 加载顺序才会应用",
     "hashNote": "注：加载顺序可能会影响 MOD hash 值，hash 值不同无法联机"
   },
   "profileImport": {

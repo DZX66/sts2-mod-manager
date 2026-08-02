@@ -276,6 +276,11 @@ export default function ModLoadOrder({ mods, loadOrder, setLoadOrder }) {
           </div>
         </div>
 
+        {/* Red warning banner */}
+        <div className="mb-3 px-4 py-2.5 bg-red-50 dark:bg-red-900/40 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300 font-medium">
+          {t('loadOrder.onlyAppliedAfterWrite')}
+        </div>
+
         {/* Auto-write toggle */}
         <div className="flex items-center gap-3 mb-3">
           <div className="flex items-center gap-2">

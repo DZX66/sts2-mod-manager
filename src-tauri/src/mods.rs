@@ -484,6 +484,23 @@ pub fn mods_toggle(
                 mods_dir.join(&mod_info.folder_name)
             };
             if src != dst {
+                // 若目标位置已存在同名文件夹，先将其重命名以避免冲突
+                if dst.exists() {
+                    let conflict_name = format!(
+                        "{}_{}",
+                        mod_info.folder_name,
+                        chrono_timestamp()
+                    );
+                    let renamed = dst.with_file_name(&conflict_name);
+                    if let Err(e) = fs::rename(&dst, &renamed) {
+                        return ModResult {
+                            success: false,
+                            error: Some(format!("重命名同名文件夹失败: {}", e)),
+                            mods: None,
+                            installed: None,
+                        };
+                    }
+                }
                 if let Err(e) = fs::rename(&src, &dst) {
                     return ModResult {
                         success: false,
