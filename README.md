@@ -2,6 +2,8 @@
 
 # 🃏 STS2 Mod Manager
 
+> 🌐 **中文版 README**：[docs/README.zh-CN.md](docs/README.zh-CN.md)
+
 **A MOD manager for Slay the Spire 2 players**
 
 No more manually copying folders. Install, remove, enable, disable — just drag & drop.
@@ -21,8 +23,6 @@ No more manually copying folders. Install, remove, enable, disable — just drag
 <br><br>
 
 <img src="docs/preview-saves.png" width="90%" alt="Save management interface" />
-
-> 🌐 **中文版 README**：[docs/README.zh-CN.md](docs/README.zh-CN.md)
 
 </div>
 

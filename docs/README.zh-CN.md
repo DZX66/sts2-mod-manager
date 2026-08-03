@@ -22,8 +22,6 @@
 
 <img src="preview-saves.png" width="90%" alt="存档管理界面" />
 
-> 🌐 **English README**：[../README.md](../README.md)
-
 </div>
 
 <br>
