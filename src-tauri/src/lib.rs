@@ -62,6 +62,7 @@ pub fn run() {
             // Logs
             logs::logs_get_latest,
             logs::logs_read,
+            logs::character_names_scan,
             // Profiles
             profiles::profiles_load,
             profiles::profiles_save,

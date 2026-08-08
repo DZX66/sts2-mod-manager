@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Download, Upload, RefreshCw, Trash2, HardDrive, Gamepad2, FolderOpen, Clock, Trophy, Sword, Layers, CreditCard } from 'lucide-react';
 import { useT } from '../i18n/I18nContext';
 
@@ -27,15 +27,23 @@ function formatPlaytime(seconds, t) {
   return t('saveManager.minutes', { m });
 }
 
-function getCharacterName(charId, t) {
-  // Map character IDs to translation keys
+function getCharacterName(charId, t, characterNames) {
+  // 1. Built-in character translations take priority
   const key = `${charId.toLowerCase().replace(/\s+/g, '_')}`;
   const translated = t(key);
-  // If translation key not found, return original name
-  return translated !== key ? translated : charId;
+  if (translated !== key) {
+    return translated;
+  }
+  // 2. Localized name learned from game logs (mod characters)
+  const modKey = charId.startsWith('CHARACTER.') ? charId : `CHARACTER.${charId}`;
+  if (characterNames && characterNames[modKey]) {
+    return characterNames[modKey];
+  }
+  // If neither found, return original name
+  return charId;
 }
 
-function SaveSummary({ summary, accent, locale, t }) {
+function SaveSummary({ summary, accent, locale, t, characterNames }) {
   if (!summary) return null;
   const accentColor = accent === 'purple' ? 'purple' : 'emerald';
   return (
@@ -73,7 +81,7 @@ function SaveSummary({ summary, accent, locale, t }) {
           <div className="space-y-1">
             {summary.characters.map(c => (
               <div key={c.id} className="flex items-center justify-between text-xs px-2 py-1 bg-gray-50 rounded-md">
-                <span className="font-medium text-gray-700">{getCharacterName(c.id, t) || c.name}</span>
+                <span className="font-medium text-gray-700">{getCharacterName(c.id, t, characterNames)}</span>
                 <span className="text-gray-500">
                   <span className={`text-${accentColor}-600 font-medium`}>{t('saveManager.wins', { count: c.wins })}</span>
                   <span className="mx-1">/</span>
@@ -93,7 +101,7 @@ function SaveSummary({ summary, accent, locale, t }) {
   );
 }
 
-function SlotCard({ slotName, slot, modded, onExport, onImport, locale, t }) {
+function SlotCard({ slotName, slot, modded, onExport, onImport, locale, t, characterNames }) {
   const isEmpty = !slot || slot.empty;
   const accent = modded ? 'purple' : 'emerald';
   const borderClass = isEmpty ? 'border-gray-100' : modded ? 'border-purple-200 shadow-sm' : 'border-gray-200 shadow-sm';
@@ -115,7 +123,7 @@ function SlotCard({ slotName, slot, modded, onExport, onImport, locale, t }) {
       </div>
 
       {!isEmpty && slot.summary && (
-        <SaveSummary summary={slot.summary} accent={accent} locale={locale} t={t} />
+        <SaveSummary summary={slot.summary} accent={accent} locale={locale} t={t} characterNames={characterNames} />
       )}
 
       {!isEmpty && !slot.summary && (
@@ -159,6 +167,8 @@ export default function SaveManager() {
   const [data, setData] = useState({ slots: [], backups: [] });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [characterNames, setCharacterNames] = useState({});
+  const scanningRef = useRef(false);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -172,7 +182,44 @@ export default function SaveManager() {
     setLoading(false);
   };
 
-  useEffect(() => { refresh(); }, []);
+  // Scan godot.log for mod character id <-> localized name mappings.
+  // Runs on mount and every time the window regains focus.
+  const scanCharacterNames = useCallback(async () => {
+    if (scanningRef.current) return;
+    scanningRef.current = true;
+    try {
+      const names = await window.api.scanCharacterNames();
+      if (names && typeof names === 'object') {
+        setCharacterNames(prev => {
+          // Merge so we never lose previously discovered names
+          const merged = { ...prev, ...names };
+          return JSON.stringify(merged) === JSON.stringify(prev) ? prev : merged;
+        });
+      }
+    } catch (e) {
+      // ignore scan errors
+    } finally {
+      scanningRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  // Run on mount
+  useEffect(() => {
+    scanCharacterNames();
+  }, [scanCharacterNames]);
+
+  // Run every time the window gains focus
+  useEffect(() => {
+    const onFocus = () => {
+      scanCharacterNames();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [scanCharacterNames]);
 
   const handleExport = async (slot, modded) => {
     const result = await window.api.exportSave({ slot, modded });
@@ -245,6 +292,7 @@ export default function SaveManager() {
                 onImport={handleImport}
                 locale={locale}
                 t={t}
+                characterNames={characterNames}
               />
             ))}
           </div>
@@ -264,6 +312,7 @@ export default function SaveManager() {
                 onImport={handleImport}
                 locale={locale}
                 t={t}
+                characterNames={characterNames}
               />
             ))}
           </div>

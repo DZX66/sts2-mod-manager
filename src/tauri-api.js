@@ -88,6 +88,7 @@ window.api = {
   // Logs
   getLatestLogs: () => invoke('logs_get_latest'),
   readLog: (fileName) => invoke('logs_read', { fileName }),
+  scanCharacterNames: () => invoke('character_names_scan'),
 
   // Profiles
   loadProfiles: () => invoke('profiles_load'),
