@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Download, Upload, RefreshCw, Trash2, HardDrive, Gamepad2, FolderOpen, Clock, Trophy, Sword, Layers, CreditCard } from 'lucide-react';
+import { Download, Upload, RefreshCw, Trash2, HardDrive, Gamepad2, FolderOpen, Clock, Milestone, Layers, CreditCard } from 'lucide-react';
 import { useT } from '../i18n/I18nContext';
 
 function formatSize(bytes) {
@@ -57,9 +57,11 @@ function SaveSummary({ summary, accent, locale, t, characterNames }) {
         </div>
         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
           <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-0.5">
-            <Trophy size={11} /><span className="text-[10px] uppercase font-semibold">{t('saveManager.score')}</span>
+            <Milestone size={11} /><span className="text-[10px] uppercase font-semibold">{t('saveManager.timeline')}</span>
           </div>
-          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{summary.currentScore.toLocaleString()}</p>
+          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+            {t('saveManager.timelineUnlocked', { unlocked: summary.epochsUnlocked ?? 0, total: summary.epochs ?? 0 })}
+          </p>
         </div>
         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
           <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-0.5">

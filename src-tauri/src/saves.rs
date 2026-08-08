@@ -27,6 +27,8 @@ pub struct ProgressSummary {
     pub current_score: u64,
     #[serde(rename = "totalUnlocks")]
     pub total_unlocks: u64,
+    #[serde(rename = "epochsUnlocked")]
+    pub epochs_unlocked: usize,
     #[serde(rename = "discoveredCards")]
     pub discovered_cards: usize,
     #[serde(rename = "discoveredRelics")]
@@ -133,6 +135,18 @@ fn parse_progress(path: &Path) -> Option<ProgressSummary> {
     }
     let data: serde_json::Value = serde_json::from_str(&content).ok()?;
 
+    let epochs_unlocked = data
+        .get("epochs")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter(|e| {
+                    e.get("state").and_then(|s| s.as_str()).unwrap_or("") != "not_obtained"
+                })
+                .count()
+        })
+        .unwrap_or(0);
+
     let characters: Vec<CharacterStat> = data
         .get("character_stats")
         .and_then(|v| v.as_array())
@@ -164,6 +178,7 @@ fn parse_progress(path: &Path) -> Option<ProgressSummary> {
         floors_climbed: data.get("floors_climbed").and_then(|v| v.as_u64()).unwrap_or(0),
         current_score: data.get("current_score").and_then(|v| v.as_u64()).unwrap_or(0),
         total_unlocks: data.get("total_unlocks").and_then(|v| v.as_u64()).unwrap_or(0),
+        epochs_unlocked,
         discovered_cards: data.get("discovered_cards").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0),
         discovered_relics: data.get("discovered_relics").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0),
         epochs: data.get("epochs").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0),
