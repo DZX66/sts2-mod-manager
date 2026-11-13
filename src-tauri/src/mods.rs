@@ -15,6 +15,15 @@ pub struct DependencyInfo {
 
 const DISABLED_DIR: &str = "mods_disabled";
 const LEGACY_DISABLED_DIR: &str = "_disabled";
+/// 「备份到本地」生成的文件夹后缀
+const BACKUP_FOLDER_SUFFIX: &str = "-backup";
+
+/// 判断文件夹名是否为「备份到本地」生成的副本。
+/// 备份副本与原 MOD 同 id，若参与 MOD 列表扫描会与工坊版重复，
+/// 因此扫描时跳过——它只是留在本地的一份文件副本。
+fn is_backup_folder_name(name: &str) -> bool {
+    name.len() > BACKUP_FOLDER_SUFFIX.len() && name.ends_with(BACKUP_FOLDER_SUFFIX)
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ModInfo {
@@ -303,6 +312,9 @@ pub fn scan_mods_internal(game_path: &str) -> Vec<ModInfo> {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
             if name == LEGACY_DISABLED_DIR {
+                continue;
+            }
+            if is_backup_folder_name(&name) {
                 continue;
             }
             if let Some(m) = try_parse_mod(&entry.path(), &name, true) {
@@ -1196,6 +1208,102 @@ pub async fn mods_restore(
             mods: None,
             installed: None,
         }),
+    }
+}
+
+/// 把创意工坊 MOD 的文件复制到本地 mods 文件夹下的 `<id>-backup` 子文件夹。
+/// - 创意工坊 MOD 的启停只改 settings.save，卸载只能走 Steam，因此本地留一份副本很有必要
+/// - 只接受 `steam_workshop` 类型的 MOD，避免误把本地 MOD 复制成备份
+#[tauri::command]
+pub fn mods_backup_workshop_to_local(
+    state: tauri::State<'_, AppState>,
+    mod_info: ToggleModInfo,
+) -> ModResult {
+    let gp = state.game_path.lock().unwrap();
+    let game_path = match &*gp {
+        Some(p) => p.clone(),
+        None => {
+            return ModResult {
+                success: false,
+                error: Some("Game path not set".into()),
+                mods: None,
+                installed: None,
+            }
+        }
+    };
+    drop(gp);
+
+    if mod_info.mod_type.as_deref() != Some("steam_workshop") {
+        return ModResult {
+            success: false,
+            error: Some("只有创意工坊 MOD 支持备份到本地".into()),
+            mods: None,
+            installed: None,
+        };
+    }
+
+    // 创意工坊 MOD 的源目录：<workshop>/content/2868840/<folderName>
+    let workshop_path = match steam::find_workshop_path(&game_path) {
+        Some(p) => p,
+        None => {
+            return ModResult {
+                success: false,
+                error: Some("找不到创意工坊目录".into()),
+                mods: None,
+                installed: None,
+            }
+        }
+    };
+    let source = Path::new(&workshop_path).join(&mod_info.folder_name);
+    if !source.is_dir() {
+        return ModResult {
+            success: false,
+            error: Some(format!("找不到创意工坊 MOD 目录: {}", source.to_string_lossy())),
+            mods: None,
+            installed: None,
+        };
+    }
+
+    // 备份名以 "[id]-backup" 命名，id 优先用 manifest 里的 modId，回落为工坊文件夹名
+    let backup_id = mod_info
+        .mod_id
+        .clone()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| mod_info.folder_name.clone());
+    let safe_id: String = backup_id
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == '.' || c == '_' || c == '-' { c } else { '_' })
+        .collect();
+    let mods_dir = get_mods_dir(&game_path);
+    if let Err(e) = fs::create_dir_all(&mods_dir) {
+        return ModResult {
+            success: false,
+            error: Some(format!("创建 mods 目录失败: {}", e)),
+            mods: None,
+            installed: None,
+        };
+    }
+    let dest = mods_dir.join(format!("{}-backup", safe_id));
+
+    // 已存在则整体替换，避免新旧文件混杂
+    if dest.exists() {
+        let _ = fs::remove_dir_all(&dest);
+    }
+    if let Err(e) = copy_dir_recursive(&source, &dest) {
+        let _ = fs::remove_dir_all(&dest);
+        return ModResult {
+            success: false,
+            error: Some(format!("备份失败: {}", e)),
+            mods: None,
+            installed: None,
+        };
+    }
+
+    ModResult {
+        success: true,
+        error: None,
+        mods: Some(full_mods_scan(&game_path)),
+        installed: Some(vec![dest.to_string_lossy().to_string()]),
     }
 }
 

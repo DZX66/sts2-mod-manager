@@ -61,6 +61,7 @@ window.api = {
   installDrop: (filePaths) => invoke('mods_install_drop', { filePaths }),
   backupMods: () => invoke('mods_backup'),
   restoreMods: () => invoke('mods_restore'),
+  backupWorkshopModToLocal: (modInfo) => invoke('mods_backup_workshop_to_local', { modInfo: { isFolder: modInfo.isFolder, folderName: modInfo.folderName, files: modInfo.files, enabled: modInfo.enabled, modId: modInfo.id, modType: modInfo.modType } }),
 
   // Shell
   openModsDir: () => invoke('shell_open_mods_dir'),

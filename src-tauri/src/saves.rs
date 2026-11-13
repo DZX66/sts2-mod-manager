@@ -37,6 +37,15 @@ pub struct ProgressSummary {
     pub characters: Vec<CharacterStat>,
     #[serde(rename = "uniqueId")]
     pub unique_id: String,
+    // ── 0.113 新增的全局进阶 / 连胜统计（全角色共用）──
+    #[serde(rename = "maxBlitzAscension")]
+    pub max_blitz_ascension: u64,
+    #[serde(rename = "maxMultiplayerAscension")]
+    pub max_multiplayer_ascension: u64,
+    #[serde(rename = "rotatingBestStreak")]
+    pub rotating_best_streak: u64,
+    #[serde(rename = "rotatingBestStreakVersion")]
+    pub rotating_best_streak_version: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -114,7 +123,11 @@ const CHARACTER_NAMES: &[(&str, &str)] = &[
     ("CHARACTER.REGENT", "储君"),
     ("CHARACTER.NECROBINDER", "亡灵契约师"),
     ("CHARACTER.DEFECT", "故障机器人"),
+    ("CHARACTER.FOOL", "愚者"),
 ];
+
+/// 轮换角色（0.113 起）的伪角色 id，其连胜记录代表“最佳轮换连胜”
+const ROTATING_CHARACTER_ID: &str = "CHARACTER.ROTATING_CHARACTER";
 
 fn char_name(id: &str) -> String {
     for (k, v) in CHARACTER_NAMES {
@@ -173,6 +186,42 @@ fn parse_progress(path: &Path) -> Option<ProgressSummary> {
         })
         .unwrap_or_default();
 
+    // 轮换角色的“本版本最佳单人死亡模式连胜”，用于展示 W1 之类的紫色标记。
+    // 找不到该角色时回落到全部角色里的最大值，保证老版本存档也能显示。
+    let rotating_entry = data
+        .get("character_stats")
+        .and_then(|v| v.as_array())
+        .and_then(|arr| {
+            arr.iter()
+                .find(|c| c.get("id").and_then(|v| v.as_str()) == Some(ROTATING_CHARACTER_ID))
+        });
+    let rotating_best_streak = rotating_entry
+        .map(|c| {
+            c.get("best_singleplayer_dread_win_streak_this_version")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0)
+        })
+        .unwrap_or_else(|| {
+            data.get("character_stats")
+                .and_then(|v| v.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|c| {
+                            c.get("best_singleplayer_dread_win_streak_this_version")
+                                .and_then(|v| v.as_u64())
+                        })
+                        .max()
+                        .unwrap_or(0)
+                })
+                .unwrap_or(0)
+        });
+    let rotating_best_streak_version = rotating_entry
+        .and_then(|c| {
+            c.get("best_singleplayer_dread_win_streak_this_version_tag")
+                .and_then(|v| v.as_str())
+        })
+        .map(String::from);
+
     Some(ProgressSummary {
         total_playtime: data.get("total_playtime").and_then(|v| v.as_u64()).unwrap_or(0),
         floors_climbed: data.get("floors_climbed").and_then(|v| v.as_u64()).unwrap_or(0),
@@ -184,6 +233,13 @@ fn parse_progress(path: &Path) -> Option<ProgressSummary> {
         epochs: data.get("epochs").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0),
         characters,
         unique_id: data.get("unique_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        max_blitz_ascension: data.get("max_blitz_ascension").and_then(|v| v.as_u64()).unwrap_or(0),
+        max_multiplayer_ascension: data
+            .get("max_multiplayer_ascension")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0),
+        rotating_best_streak,
+        rotating_best_streak_version,
     })
 }
 

@@ -277,6 +277,16 @@ export default function App() {
     });
   };
 
+  const handleBackupWorkshopToLocal = async (mod) => {
+    const result = await window.api.backupWorkshopModToLocal(mod);
+    if (result.success) {
+      showToast(t('mods.workshopBackupDone', { name: mod.name }));
+      if (result.mods) syncMods(result.mods); else refreshMods();
+    } else if (result.error) {
+      showToast(result.error, 'error');
+    }
+  };
+
   const handleInstall = async () => {
     const result = await window.api.installMod();
     if (result.success) {
@@ -378,32 +388,24 @@ export default function App() {
   };
 
   const applyProfileState = async (profile) => {
+    // 尽可能应用配置：
+    //  - 只要配置里记录为启用，就启用该 MOD（版本不一致也照样启用，不再因此禁用）
+    //  - 配置里没有的 MOD 一律禁用
+    //  - 配置里存在但本地缺失的 MOD 直接跳过（忽略）
     for (const mod of mods) {
       const entry = profile.snapshot[mod.id];
-      if (entry !== undefined) {
-        const info = getProfileEntry(entry);
-        if (info.version) {
-          const isTargetVersion = mod.version === info.version;
-          if (isTargetVersion && !mod.enabled) {
-            await window.api.toggleMod(mod);
-          } else if (!isTargetVersion && mod.enabled) {
-            await window.api.toggleMod(mod);
-          }
-        } else {
-          if (info.enabled !== mod.enabled) {
-            await window.api.toggleMod(mod);
-          }
-        }
-      } else {
-        if (mod.enabled) {
-          await window.api.toggleMod(mod);
-        }
+      const shouldEnable = entry !== undefined && getProfileEntry(entry).enabled;
+      if (shouldEnable !== mod.enabled) {
+        await window.api.toggleMod(mod);
       }
     }
 
     // Restore load order from profile if available
     if (profile.loadOrder && profile.loadOrder.length > 0) {
-      const enabledIds = mods.filter(m => m.enabled && m.id).map(m => m.id);
+      // 用配置推导出的启用集合（mods 尚未刷新，不能依赖旧的 enabled 状态）
+      const enabledIds = mods
+        .filter(m => m.id && profile.snapshot[m.id] !== undefined && getProfileEntry(profile.snapshot[m.id]).enabled)
+        .map(m => m.id);
       const validOrder = profile.loadOrder.filter(id => enabledIds.includes(id));
       // Add any enabled mods not yet in order
       for (const id of enabledIds) {
@@ -439,15 +441,9 @@ export default function App() {
 
     const changes = mods.filter(m => {
       const entry = profile.snapshot[m.id];
-      if (entry !== undefined) {
-        const info = getProfileEntry(entry);
-        if (info.version) {
-          if (m.version === info.version) return !m.enabled;
-          return m.enabled;
-        }
-        return info.enabled !== m.enabled;
-      }
-      return m.enabled;
+      // 配置里没有的 MOD → 应禁用；配置里记录为启用的 → 应启用（不看版本）
+      const shouldEnable = entry !== undefined && getProfileEntry(entry).enabled;
+      return shouldEnable !== m.enabled;
     });
 
     if (missingModIds.length > 0 || versionMismatches.length > 0) {
@@ -470,13 +466,8 @@ export default function App() {
         onUpdate: async () => {
           setMissingModsDialog(null);
           const updatedSnapshot = { ...profile.snapshot };
+          // 只移除本地确实不存在的 MOD；版本不一致的条目保留，应用时照样启用
           missingModIds.forEach(id => delete updatedSnapshot[id]);
-          versionMismatches.forEach(m => {
-            if (m.availableVersions && m.availableVersions.length > 0) {
-              const firstAvail = m.availableVersions[0];
-              updatedSnapshot[m.id] = { ...updatedSnapshot[m.id], version: firstAvail !== t('common.unknown') ? firstAvail : null };
-            }
-          });
           const updatedProfile = { ...profile, snapshot: updatedSnapshot, savedAt: new Date().toISOString() };
           const updated = { ...profiles, [name]: updatedProfile };
           await window.api.saveProfiles(updated);
@@ -1140,6 +1131,7 @@ export default function App() {
                       onClose={() => setSelectedMod(null)}
                       onToggle={() => handleToggle(selectedMod)}
                       onUninstall={() => handleUninstall(selectedMod)}
+                      onBackupToLocal={handleBackupWorkshopToLocal}
                       onSelectMod={setSelectedMod}
                       onTranslationSaved={() => window.api.loadTranslations && window.api.loadTranslations().then(setTranslations)}
                       onTagsChanged={() => loadTagsData().then(data => {
@@ -1200,6 +1192,7 @@ export default function App() {
                       onClose={() => setSelectedMod(null)}
                       onToggle={() => handleToggle(selectedMod)}
                       onUninstall={() => handleUninstall(selectedMod)}
+                      onBackupToLocal={handleBackupWorkshopToLocal}
                       onSelectMod={setSelectedMod}
                       onTranslationSaved={() => window.api.loadTranslations && window.api.loadTranslations().then(setTranslations)}
                       onTagsChanged={() => loadTagsData().then(data => {
@@ -1383,15 +1376,18 @@ export default function App() {
                 </div>
               )}
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
-              <button onClick={missingModsDialog.onIgnore}
-                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors">
-                {t('missingModsDialog.ignore')}
-              </button>
-              <button onClick={missingModsDialog.onUpdate}
-                className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
-                {t('missingModsDialog.updateProfile')}
-              </button>
+            <div className="px-6 py-4 border-t border-gray-100">
+              <p className="text-[11px] text-gray-400 mb-3 leading-relaxed">{t('missingModsDialog.ignoreHint')}</p>
+              <div className="flex gap-2">
+                <button onClick={missingModsDialog.onIgnore}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors">
+                  {t('missingModsDialog.ignore')}
+                </button>
+                <button onClick={missingModsDialog.onUpdate}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+                  {t('missingModsDialog.updateProfile')}
+                </button>
+              </div>
             </div>
           </div>
         </div>

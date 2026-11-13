@@ -43,9 +43,33 @@ function getCharacterName(charId, t, characterNames) {
   return charId;
 }
 
+function SummaryBadge({ tone, label, tip }) {
+  const tones = {
+    green: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900',
+    blue: 'bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 border-blue-100 dark:border-blue-900',
+    purple: 'bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-400 border-purple-100 dark:border-purple-900',
+  };
+  return (
+    <span className="relative group cursor-default">
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[11px] font-semibold ${tones[tone]}`}>
+        {label}
+      </span>
+      {tip && (
+        <span className="pointer-events-none absolute bottom-full left-0 mb-1 z-30 hidden group-hover:block w-max max-w-[220px] whitespace-normal px-2.5 py-1.5 rounded-lg bg-gray-900/95 dark:bg-black/90 text-white text-[10px] leading-relaxed shadow-lg">
+          {tip}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function SaveSummary({ summary, accent, locale, t, characterNames }) {
   if (!summary) return null;
   const accentColor = accent === 'purple' ? 'purple' : 'emerald';
+  const blitzAscension = summary.maxBlitzAscension || 0;
+  const multiplayerAscension = summary.maxMultiplayerAscension || 0;
+  const rotatingStreak = summary.rotatingBestStreak || 0;
+  const hasAscensionRow = blitzAscension > 0 || multiplayerAscension > 0 || rotatingStreak > 0;
   return (
     <div className="space-y-3 mb-4">
       <div className="grid grid-cols-2 gap-2">
@@ -76,6 +100,24 @@ function SaveSummary({ summary, accent, locale, t, characterNames }) {
           <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{t('saveManager.cards', { count: summary.discoveredCards })} / {t('saveManager.relics', { count: summary.discoveredRelics })}</p>
         </div>
       </div>
+
+      {hasAscensionRow && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {blitzAscension > 0 && (
+            <SummaryBadge tone="green" label={`A${blitzAscension}`} tip={t('saveManager.blitzAscensionTip')} />
+          )}
+          {multiplayerAscension > 0 && (
+            <SummaryBadge tone="blue" label={`A${multiplayerAscension}`} tip={t('saveManager.multiplayerAscensionTip')} />
+          )}
+          {rotatingStreak > 0 && (
+            <SummaryBadge
+              tone="purple"
+              label={`W${rotatingStreak}`}
+              tip={t('saveManager.rotatingStreakTip', { version: summary.rotatingBestStreakVersion || t('common.unknown') })}
+            />
+          )}
+        </div>
+      )}
 
       {summary.characters.length > 0 && (
         <div>

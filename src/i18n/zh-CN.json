@@ -87,6 +87,7 @@
     "batchDisabled": "已批量禁用 {count} 个 MOD",
     "batchUninstalled": "已批量卸载 {count} 个 MOD",
     "backupDone": "备份完成",
+    "workshopBackupDone": "「{name}」已备份到本地 mods 文件夹",
     "restoreDone": "还原完成",
     "confirmUninstallTitle": "卸载 {name}",
     "confirmUninstallMessage": "此 MOD 被 {deps} 依赖，卸载后这些 MOD 可能无法正常工作。确定继续？",
@@ -98,7 +99,7 @@
     "confirmApplyProfileNoChanges": "当前 MOD 状态与该配置一致，无需改变。",
     "profileApplied": "已应用配置 \"{name}\"",
     "profileAppliedWithIssues": "已应用配置 \"{name}\"（已忽略 {missing} 个缺失 MOD{mismatch}）",
-    "profileUpdatedAndApplied": "配置 \"{name}\" 已更新并应用（移除了 {missing} 个缺失 MOD，更新了 {mismatch} 个 MOD 版本）",
+    "profileUpdatedAndApplied": "配置 \"{name}\" 已更新并应用（移除了 {missing} 个缺失 MOD，{mismatch} 个版本不一致的 MOD 保留原记录并照常启用）",
     "profileSaved": "配置 \"{name}\" 已保存",
     "profileDeleted": "已删除配置 \"{name}\"",
     "profileInputPlaceholder": "输入配置名称...",
@@ -164,6 +165,9 @@
     "openWorkshop": "打开页面",
     "workshopPageTitle": "在 Steam 创意工坊中查看此 MOD",
     "uninstallDisabledWorkshop": "请通过 Steam 卸载",
+    "backupToLocal": "备份到本地",
+    "backingUpToLocal": "备份中...",
+    "backupToLocalTitle": "把创意工坊 MOD 的文件复制到本地 mods 文件夹的「[id]-backup」子文件夹",
     "requiredGameVersion": "所需游戏版本",
     "versionWarning": "此 MOD 需要游戏 v{required} 以上版本，当前游戏版本为 {current}，可能无法正常工作",
     "description": "描述",
@@ -226,6 +230,9 @@
     "cards": "{count} 卡",
     "relics": "{count} 遗物",
     "charStats": "角色战绩",
+    "blitzAscensionTip": "极速模式的最高进阶数（A5 = 进阶 5），所有角色共用",
+    "multiplayerAscensionTip": "多人模式的最高进阶数（A10 = 进阶 10），所有角色共用",
+    "rotatingStreakTip": "最佳轮换连胜：轮换角色在本版本（{version}）死亡模式下的最高连胜",
     "wins": "{count}胜",
     "losses": "{count}负",
     "runsComplete": "共完成 {count} 轮游戏",
@@ -305,7 +312,8 @@
     "versionMismatches": "版本不匹配的 MOD",
     "recordedVersion": "记录版本: {version}",
     "recorded": "记录: {saved}，可用版本: {available}",
-    "ignore": "忽略，继续应用",
+    "ignoreHint": "将尽可能应用配置：版本不一致的 MOD 也会启用，配置里没有的 MOD 会被禁用，缺失的 MOD 直接忽略。",
+    "ignore": "尽可能应用",
     "updateProfile": "更新配置"
   },
   "updateDialog": {
@@ -324,7 +332,9 @@
     "silent": "静默猎手",
     "defect": "故障机器人",
     "regent": "储君",
-    "necrobinder": "亡灵契约师"
+    "necrobinder": "亡灵契约师",
+    "fool": "愚者",
+    "rotating_character": "轮换角色"
   },
   "loadOrder": {
     "title": "加载顺序",

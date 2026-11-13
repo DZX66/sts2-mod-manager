@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ToggleLeft, ToggleRight, Trash2, AlertTriangle, FileText, Box, Code, Languages, ExternalLink, Shield, Gamepad2, Palette, StickyNote, Tag } from 'lucide-react';
+import { X, ToggleLeft, ToggleRight, Trash2, AlertTriangle, FileText, Box, Code, Languages, ExternalLink, Shield, Gamepad2, Palette, StickyNote, Tag, Save } from 'lucide-react';
 import { getUnsatisfiedDeps, checkDepSatisfied, checkMinGameVersion } from '../utils/deps';
 import { useT } from '../i18n/I18nContext';
 import ModTags from './ModTags';
@@ -22,8 +22,9 @@ function getModCategory(mod, allMods, t) {
   return { label: t('modCard.catResource'), color: 'bg-teal-50 text-teal-600', icon: Palette };
 }
 
-export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall, onSelectMod, onTranslationSaved, onTagsChanged, gameVersion }) {
+export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall, onSelectMod, onTranslationSaved, onTagsChanged, gameVersion, onBackupToLocal }) {
   const { t } = useT();
+  const [backupBusy, setBackupBusy] = useState(false);
   const missingDeps = getUnsatisfiedDeps(mod, allMods);
   const versionOk = checkMinGameVersion(mod, gameVersion);
   const versionIncompatible = versionOk === false;
@@ -85,6 +86,16 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
   };
 
   const hasEnglishContent = !isChinese(mod.description) || !isChinese(mod.name);
+
+  const handleBackupToLocal = async () => {
+    if (backupBusy || !onBackupToLocal) return;
+    setBackupBusy(true);
+    try {
+      await onBackupToLocal(mod);
+    } finally {
+      setBackupBusy(false);
+    }
+  };
 
   return (
     <div className="w-80 bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden">
@@ -259,6 +270,17 @@ export default function ModDetail({ mod, allMods, onClose, onToggle, onUninstall
           }`}>
           <Trash2 size={14} /> {mod.modType === 'steam_workshop' ? t('modDetail.uninstallDisabledWorkshop') : t('modDetail.uninstallMod')}
         </button>
+        {mod.modType === 'steam_workshop' && (
+          <button onClick={handleBackupToLocal} disabled={backupBusy}
+            title={t('modDetail.backupToLocalTitle')}
+            className={`w-full py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 border ${
+              backupBusy
+                ? 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 cursor-wait'
+                : 'border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950'
+            }`}>
+            <Save size={14} /> {backupBusy ? t('modDetail.backingUpToLocal') : t('modDetail.backupToLocal')}
+          </button>
+        )}
       </div>
     </div>
   );

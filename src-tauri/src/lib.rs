@@ -47,6 +47,7 @@ pub fn run() {
             mods::mods_install_drop,
             mods::mods_backup,
             mods::mods_restore,
+            mods::mods_backup_workshop_to_local,
             // Shell
             shell_open_mods_dir,
             shell_open_game_dir,

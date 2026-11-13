@@ -87,6 +87,7 @@
     "batchDisabled": "Batch disabled {count} MODs",
     "batchUninstalled": "Batch uninstalled {count} MODs",
     "backupDone": "Backup complete",
+    "workshopBackupDone": "\"{name}\" backed up to the local mods folder",
     "restoreDone": "Restore complete",
     "confirmUninstallTitle": "Uninstall {name}",
     "confirmUninstallMessage": "This MOD is a dependency of {deps}. Uninstalling it may break these MODs. Are you sure?",
@@ -98,7 +99,7 @@
     "confirmApplyProfileNoChanges": "Current MOD state matches this profile. No changes needed.",
     "profileApplied": "Profile \"{name}\" applied",
     "profileAppliedWithIssues": "Profile \"{name}\" applied (ignored {missing} missing MOD(s){mismatch})",
-    "profileUpdatedAndApplied": "Profile \"{name}\" updated and applied (removed {missing} missing MOD(s), updated {mismatch} MOD version(s))",
+    "profileUpdatedAndApplied": "Profile \"{name}\" updated and applied (removed {missing} missing MOD(s); {mismatch} version-mismatched MOD(s) kept and enabled anyway)",
     "profileSaved": "Profile \"{name}\" saved",
     "profileDeleted": "Profile \"{name}\" deleted",
     "profileInputPlaceholder": "Enter profile name...",
@@ -164,6 +165,9 @@
     "openWorkshop": "Open Page",
     "workshopPageTitle": "View this MOD on Steam Workshop",
     "uninstallDisabledWorkshop": "Please uninstall via Steam",
+    "backupToLocal": "Backup to Local",
+    "backingUpToLocal": "Backing up...",
+    "backupToLocalTitle": "Copy the workshop MOD files into the local mods folder under an \"[id]-backup\" subfolder",
     "requiredGameVersion": "Required Game Version",
     "versionWarning": "This MOD requires game v{required}+. Current game version is {current}. It may not work correctly.",
     "description": "Description",
@@ -226,6 +230,9 @@
     "cards": "{count} cards",
     "relics": "{count} relics",
     "charStats": "Character Stats",
+    "blitzAscensionTip": "Highest Blitz mode ascension (A5 = Ascension 5), shared across all characters",
+    "multiplayerAscensionTip": "Highest multiplayer ascension (A10 = Ascension 10), shared across all characters",
+    "rotatingStreakTip": "Best rotating win streak: the Rotating Character's highest Dread win streak this version ({version})",
     "wins": "{count}W",
     "losses": "{count}L",
     "runsComplete": "{count} run(s) completed",
@@ -305,7 +312,8 @@
     "versionMismatches": "Version Mismatches",
     "recordedVersion": "Recorded version: {version}",
     "recorded": "Recorded: {saved}, available: {available}",
-    "ignore": "Ignore & Apply",
+    "ignoreHint": "The profile will be applied as far as possible: version-mismatched MODs are still enabled, MODs not in the profile are disabled, and missing MODs are ignored.",
+    "ignore": "Apply Anyway",
     "updateProfile": "Update Profile"
   },
   "updateDialog": {
@@ -324,7 +332,9 @@
     "silent": "Silent",
     "defect": "Defect",
     "regent": "Regent",
-    "necrobinder": "Necrobinder"
+    "necrobinder": "Necrobinder",
+    "fool": "The Fool",
+    "rotating_character": "Rotating Character"
   },
   "loadOrder": {
     "title": "Load Order",

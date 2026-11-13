@@ -45,7 +45,7 @@ No more manually copying folders. Install, remove, enable, disable — just drag
 | 🖼️ | **Dual View Modes** | Switch between card grid view (default) and two-column list view anytime |
 | 🧭 | **First-Run Guide** | A 3-step card-based onboarding: pick folder → install MODs → verify launch, beginner-friendly |
 | ⚠️ | **Action Confirmation** | Risky operations (uninstall, batch uninstall, apply profiles, restore backups) ask for confirmation and explain the consequences first |
-| 💾 | **Save Management** | Normal saves & MOD saves displayed separately, with one-click export backup and import restore |
+| 💾 | **Save Management** | Normal saves & MOD saves displayed separately, with one-click export backup, import restore, plus Blitz / multiplayer ascension and rotating win-streak badges |
 | 📋 | **Game Logs** | View the latest logs in real time to pinpoint issues instantly |
 | 🌐 | **MOD Translation** | Can't understand English descriptions? Translate them into Chinese with one click |
 | ⚙️ | **Config Profiles** | Save MOD enablement schemes and switch between co-op / solo anytime |
@@ -75,6 +75,7 @@ No more manually copying folders. Install, remove, enable, disable — just drag
 
 ### 🧩 Steam Workshop Support
 <p>Directly detects the current Steam user, scans the workshop subscription directory, and automatically brings workshop MODs under management. Workshop MODs are marked as such in the MOD list, with enable status, workshop ID display, and one-click open of the workshop page.<br>
+The MOD detail page offers a <b>Backup to Local</b> button that copies the workshop MOD's files into a <code>[id]-backup</code> subfolder of the local mods folder.<br>
 <sub>Uninstalling workshop MODs must be done through the Steam client.</sub></p>
 
 ### 🤖 Smart Install Mode
@@ -99,7 +100,7 @@ No more manually copying folders. Install, remove, enable, disable — just drag
 - Ignores leading <code>"v"</code> prefix in version numbers for wider compatibility</p>
 
 ### 🛠 Profile Switching Refactor
-<p>Rewrote the config profile switching logic to fix MOD state inconsistencies in save management. When applying a profile, missing MODs and version mismatches are detected, offering both "Ignore and continue" and "Update profile" handling options.</p>
+<p>Rewrote the config profile switching logic to fix MOD state inconsistencies in save management. When applying a profile, missing MODs and version mismatches are still reported, but applying now tries to enforce the profile as far as possible: MODs recorded as enabled are enabled regardless of version differences, MODs not present in the profile are disabled, and missing MODs are simply ignored.</p>
 
 ### 🔢 MOD Load Order Management
 <p>Adjust MOD load order via drag-and-drop in a popup to resolve load conflicts between MODs.</p>
