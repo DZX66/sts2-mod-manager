@@ -42,7 +42,7 @@ No more manually copying folders. Install, remove, enable, disable — just drag
 | 🔀 | **Smart Sorting** | Sort by name / dependency issues first / gameplay impact / category / size |
 | 🔢 | **Load Order** | Drag to adjust MOD load order and resolve load conflicts |
 | 🔎 | **Tag Filtering** | Quickly filter MODs by tags, with support for custom tags and color markers |
-| 🖼️ | **Dual View Modes** | Switch between card grid view (default) and two-column list view anytime |
+| 🖼️ | **Dual View Modes** | Switch between card grid view (default) and two-column list view anytime; your last choice is remembered |
 | 🧭 | **First-Run Guide** | A 3-step card-based onboarding: pick folder → install MODs → verify launch, beginner-friendly |
 | ⚠️ | **Action Confirmation** | Risky operations (uninstall, batch uninstall, apply profiles, restore backups) ask for confirmation and explain the consequences first |
 | 💾 | **Save Management** | Normal saves & MOD saves displayed separately, with one-click export backup, import restore, plus Blitz / multiplayer ascension and rotating win-streak badges |

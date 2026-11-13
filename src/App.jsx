@@ -65,7 +65,11 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false);
   const [gameState, setGameState] = useState('idle');
   const [gameVersion, setGameVersion] = useState(null);
-  const [viewMode, setViewMode] = useState('grid');
+  // 视图模式偏好：从 localStorage 恢复，非法值回落到卡片视图
+  const [viewMode, setViewMode] = useState(() => {
+    const saved = localStorage.getItem('sts2-view-mode');
+    return saved === 'list' ? 'list' : 'grid';
+  });
   const [sortBy, setSortBy] = useState('name');
   const [showProfiles, setShowProfiles] = useState(false);
   const [profiles, setProfiles] = useState({});
@@ -154,6 +158,12 @@ export default function App() {
     
     const result = await window.api.launchGame();
     if (!result.success && result.error) showToast(result.error, 'error');
+  };
+
+  // 切换视图模式并持久化，下次启动沿用上次选择
+  const handleSetViewMode = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('sts2-view-mode', mode);
   };
 
   const showToast = (msg, type = 'success') => {
@@ -984,12 +994,12 @@ export default function App() {
                     )}
                   </div>
                   <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
-                    <button onClick={() => setViewMode('grid')}
+                    <button onClick={() => handleSetViewMode('grid')}
                       className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
                       title={t('mods.cardView')}>
                       <LayoutGrid size={16} />
                     </button>
-                    <button onClick={() => setViewMode('list')}
+                    <button onClick={() => handleSetViewMode('list')}
                       className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
                       title={t('mods.listView')}>
                       <List size={16} />

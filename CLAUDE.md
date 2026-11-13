@@ -172,7 +172,7 @@ className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
 
 ### 6.5 本地存储键
 
-新增 `localStorage` 键请统一 `sts2-` 前缀。现有：`sts2-theme`、`sts2-locale`、`sts2-update-dismissed`、`sts2-workshop-warning-dismissed`、`sts2-load-order-write-settings`。
+新增 `localStorage` 键请统一 `sts2-` 前缀。现有：`sts2-theme`、`sts2-locale`、`sts2-update-dismissed`、`sts2-workshop-warning-dismissed`、`sts2-load-order-write-settings`、`sts2-view-mode`（MOD 列表的卡片 / 列表视图偏好，取值 `grid` / `list`）。
 
 ### 6.6 样式构建注意
 
