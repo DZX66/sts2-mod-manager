@@ -54,7 +54,7 @@ src-tauri/               后端源码（Rust）
   src/main.rs            进程入口：写 launch.log、catch_unwind、Windows 错误弹窗
   src/lib.rs             ★ Tauri Builder、AppState、所有 command 的注册表、窗口/Shell 命令
   src/config.rs          游戏路径探测（Steam 库 VDF）、config.json、app_init
-  src/mods.rs            ★ 最大的模块（约 1200 行）：扫描、解析 manifest、启停、卸载、安装/解压、备份还原
+  src/mods.rs            ★ 最大的模块（约 1300 行）：扫描、解析 manifest、启停、卸载、安装/解压、备份还原
   src/steam.rs           Steam 用户扫描、settings.save 读写、创意工坊目录扫描
   src/load_order.rs      加载顺序持久化、智能排序、写回 settings.save
   src/profiles.rs        档案增删改、导入导出（JSON / 文件 / 剪贴板）
@@ -104,7 +104,7 @@ npm run build:tauri-fe             # 前端打包（当前基线：2 个体积 w
 
 涉及实际行为时必须手工启动应用验证（这是 Windows 桌面应用，需要真实游戏目录 / Steam 环境）。
 
-**版本号**：用户看到的版本只来自 `src-tauri/tauri.conf.json` 的 `version`（当前 `1.5.2`）。`package.json` 与 `src-tauri/Cargo.toml` 里都还是 `1.0.0`，是历史遗留，改版本号时不必同步（但也不要基于它们判断版本）。
+**版本号**：用户看到的版本只来自 `src-tauri/tauri.conf.json` 的 `version`（当前 `1.5.3`）。`package.json` 与 `src-tauri/Cargo.toml` 里都还是 `1.0.0`，是历史遗留，改版本号时不必同步（但也不要基于它们判断版本）。
 
 ## 5. 前后端契约（最重要的约定）
 
@@ -151,7 +151,7 @@ npm run build:tauri-fe             # 前端打包（当前基线：2 个体积 w
 - 所有 UI 文案走 `const { t } = useT()`（来自 [src/i18n/I18nContext.js](src/i18n/I18nContext.js)），**不要在 JSX 里硬编码中文或英文**。
 - 键是点分命名空间：`t('mods.installMod')`、`t('nav.mods')`。支持插值：`t('mods.summary', { total, enabled })`，对应 JSON 里的 `{total}`。
 - **缺失键会静默返回键名本身**（`t('a.b') === 'a.b'`），不会报错 —— 所以新增文案后必须肉眼确认渲染正常。
-- `zh-CN.json` 与 `en-US.json` 的叶子键必须**严格 1:1**（当前各 346 个，16 个顶层命名空间）。改一个就要改另一个。
+- `zh-CN.json` 与 `en-US.json` 的叶子键必须**严格 1:1**（当前各 356 个，16 个顶层命名空间）。改一个就要改另一个。
 - 顶层命名空间：`app` `nav` `mods` `modCard` `modDetail` `logViewer` `saveManager` `settings` `crashDialog` `missingModsDialog` `updateDialog` `confirmDialog` `character` `loadOrder` `profileImport` `common`。
 - 语言检测：`navigator.language` 以 `zh` 开头 → `zh-CN`，否则 `en-US`；持久化在 `localStorage['sts2-locale']`。
 
@@ -274,6 +274,24 @@ className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
 - `gh_publish.py` 的更新日志来源（依次拼接）：注解 tag 的 message → `上一版本..本 tag` 的 commit 主题列表 → GitHub 官方 PR 自动生成笔记。因为本项目**直接往 main 推 commit 不走 PR**，commit 主题是更新日志的主体，所以 **commit message 要写得像给人看的说明**（现有风格：`feat: ...` / `fix: ...` / `ci: ...`，中文描述可以）。
 - 发布流程：改 `src-tauri/tauri.conf.json` 的 `version` → 提交 → `git tag v1.x.y` → push tag。
 - 仓库没有 `LICENSE` 文件（README 写的是 MIT），也没有 `CONTRIBUTING`，无需遵循额外流程。
+
+### 11.1 实测发布习惯（v1.5.2 / v1.5.3 实操）
+
+- **拆两个 commit**：功能改动一个 commit，版本号单独一个 commit，标题就是版本号本身（`1.5.2` / `1.5.3`，不带 `chore:` 前缀）。历史上的 `7176518`、`63e8c35` 都是这种单行版本 commit。
+- **tag 用轻量 tag**（`git tag v1.x.y`，不加 `-a`）。除 `v1.1.0` 外全部是 lightweight tag，于是 `gh_publish.py` 读到的 tag 注解为空，**Release 正文完全由 commit 主题列表决定** —— 更加印证「commit message 要写成人话」。
+- **顺序**：`git push origin main` → `git tag v1.x.y` → `git push origin v1.x.y`（单独推 tag 才会触发 `build.yml`）。
+- **耗时**：Windows runner 全流程约 9~10 分钟（v1.5.2：10:48:12 触发 → 10:56:56 发布）。推完 tag 不必守着，`Build and Release` 与 `Build Windows` 各跑一个。
+- **本机没有 `gh` CLI**，看流水线只能用 GitHub REST API + `curl`：
+  ```bash
+  curl -sS --ssl-no-revoke -m 40 \
+    "https://api.github.com/repos/DZX66/sts2-mod-manager/actions/runs?per_page=5"
+  curl -sS --ssl-no-revoke -m 40 \
+    "https://api.github.com/repos/DZX66/sts2-mod-manager/actions/runs/<run_id>/jobs"
+  ```
+  必须带 `--ssl-no-revoke`，否则 Windows schannel 会报 `CRYPT_E_NO_REVOCATION_CHECK`（`HTTP 000`）。落盘的临时 `run.json` 之类用完即删，别混进工作区。
+- **`git push` 偶发 `Recv failure: Connection was reset`**：不是代理/配置问题（`git ls-remote` 正常），直接重试一次即可。
+- 发版前确认 `git status` 干净；`dist-tauri/` 的构建产物（`renderer.js`、`318/964.renderer.js`、`output.css`、`src/output.css`）是入库的，重新构建后必须一起提交。
+
 
 ## 12. 语言习惯
 
