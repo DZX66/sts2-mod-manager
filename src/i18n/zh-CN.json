@@ -99,7 +99,7 @@
     "confirmApplyProfileNoChanges": "当前 MOD 状态与该配置一致，无需改变。",
     "profileApplied": "已应用配置 \"{name}\"",
     "profileAppliedWithIssues": "已应用配置 \"{name}\"（已忽略 {missing} 个缺失 MOD{mismatch}）",
-    "profileUpdatedAndApplied": "配置 \"{name}\" 已更新并应用（移除了 {missing} 个缺失 MOD，{mismatch} 个版本不一致的 MOD 保留原记录并照常启用）",
+    "profileUpdatedAndApplied": "配置 \"{name}\" 已更新并应用（移除了 {missing} 个缺失 MOD，更新了 {mismatch} 个 MOD 版本）",
     "profileSaved": "配置 \"{name}\" 已保存",
     "profileDeleted": "已删除配置 \"{name}\"",
     "profileInputPlaceholder": "输入配置名称...",

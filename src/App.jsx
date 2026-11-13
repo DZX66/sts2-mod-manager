@@ -466,8 +466,16 @@ export default function App() {
         onUpdate: async () => {
           setMissingModsDialog(null);
           const updatedSnapshot = { ...profile.snapshot };
-          // 只移除本地确实不存在的 MOD；版本不一致的条目保留，应用时照样启用
+          // 更新配置 = 让配置跟随本地实际情况：
+          //  - 移除本地确实不存在的 MOD
+          //  - 版本不一致的条目改成当前可用的版本，这样下次应用不会再报版本不匹配
           missingModIds.forEach(id => delete updatedSnapshot[id]);
+          versionMismatches.forEach(m => {
+            if (m.availableVersions && m.availableVersions.length > 0) {
+              const firstAvail = m.availableVersions[0];
+              updatedSnapshot[m.id] = { ...updatedSnapshot[m.id], version: firstAvail !== t('common.unknown') ? firstAvail : null };
+            }
+          });
           const updatedProfile = { ...profile, snapshot: updatedSnapshot, savedAt: new Date().toISOString() };
           const updated = { ...profiles, [name]: updatedProfile };
           await window.api.saveProfiles(updated);
